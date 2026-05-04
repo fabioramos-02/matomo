@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from config import DEFAULT_PERIOD, DEFAULT_DATE
+from config import DEFAULT_PERIOD, DEFAULT_DATE, MATOMO_SITE_ID
 from api.matomo_client import MatomoAPI
 from utils.data_processor import (
     process_page_urls, identify_service_cards, process_search_keywords, process_transitions,
@@ -21,6 +21,32 @@ from datetime import date as dt_date, timedelta
 
 # Sidebar para Filtros
 st.sidebar.title("Filtros")
+
+# Busca de Sites Dinâmica
+with st.spinner("Carregando sites..."):
+    sites_data = api.get_sites()
+    
+if not sites_data:
+    st.sidebar.error("Erro ao buscar sites.")
+    st.stop()
+
+# Mapeia nomes para IDs (ex: {'MS': 298, 'SGI': 1})
+sites_map = {site['name']: site['idsite'] for site in sites_data}
+
+# Hardcode: O site 298 não retorna na API por uma restrição de acesso, então injetamos ele na lista:
+sites_map["Portal de Serviços MS"] = int(MATOMO_SITE_ID)
+
+default_site_index = 0
+# Tenta selecionar o site configurado por padrão se existir na lista
+for i, (name, idsite) in enumerate(sites_map.items()):
+    if str(idsite) == str(MATOMO_SITE_ID):
+        default_site_index = i
+        break
+
+selected_site_name = st.sidebar.selectbox("Site", list(sites_map.keys()), index=default_site_index)
+selected_site_id = sites_map[selected_site_name]
+
+st.sidebar.markdown("---")
 
 period_map = {
     "Dia": "day",
@@ -67,34 +93,34 @@ buscas e transições (jornada) nas **Cartas de Serviço** do portal.
 
 # Funções com cache para não sobrecarregar a API
 @st.cache_data(ttl=3600) # Cache de 1 hora
-def load_page_data(p, d):
-    data = api.get_page_urls(p, d, limit=500)
+def load_page_data(p, d, sid):
+    data = api.get_page_urls(p, d, site_id=sid, limit=500)
     return process_page_urls(data)
 
 @st.cache_data(ttl=3600)
-def load_search_data(p, d):
-    data = api.get_site_search_keywords(p, d, limit=100)
+def load_search_data(p, d, sid):
+    data = api.get_site_search_keywords(p, d, site_id=sid, limit=100)
     return process_search_keywords(data)
 
 @st.cache_data(ttl=3600)
-def load_transitions_data(p, d, url):
-    data = api.get_transitions(p, d, url)
+def load_transitions_data(p, d, url, sid):
+    data = api.get_transitions(p, d, url, site_id=sid)
     return process_transitions(data)
 
 @st.cache_data(ttl=3600)
-def load_geography_data(p, d):
-    data = api.get_city(p, d, limit=500)
+def load_geography_data(p, d, sid):
+    data = api.get_city(p, d, site_id=sid, limit=500)
     return process_cities_ms(data)
 
 @st.cache_data(ttl=3600)
-def load_visit_time_data(p, d):
-    data = api.get_visit_time(p, d)
+def load_visit_time_data(p, d, sid):
+    data = api.get_visit_time(p, d, site_id=sid)
     return process_visit_time(data)
 
 @st.cache_data(ttl=3600)
-def load_devices_data(p, d):
-    data_browsers = api.get_browsers(p, d)
-    data_types = api.get_device_type(p, d)
+def load_devices_data(p, d, sid):
+    data_browsers = api.get_browsers(p, d, site_id=sid)
+    data_types = api.get_device_type(p, d, site_id=sid)
     return process_browsers(data_browsers), process_device_types(data_types)
 
 @st.cache_data(ttl=86400) # Cache de 1 dia para o mapa
@@ -107,11 +133,11 @@ def load_ms_geojson():
 
 # Carregamento de Dados Principais
 with st.spinner("Buscando dados no Matomo... Isso pode demorar para períodos longos como 'year'."):
-    df_pages = load_page_data(period, date)
-    df_search = load_search_data(period, date)
-    df_cities = load_geography_data(period, date)
-    df_time = load_visit_time_data(period, date)
-    df_browsers, df_device_types = load_devices_data(period, date)
+    df_pages = load_page_data(period, date, selected_site_id)
+    df_search = load_search_data(period, date, selected_site_id)
+    df_cities = load_geography_data(period, date, selected_site_id)
+    df_time = load_visit_time_data(period, date, selected_site_id)
+    df_browsers, df_device_types = load_devices_data(period, date, selected_site_id)
     
 if df_pages.empty:
     st.error("Nenhum dado retornado da API ou ocorreu um erro na conexão.")
@@ -226,7 +252,7 @@ with tab3:
         top_service_name = df_services.iloc[0]['Nome do Serviço']
         st.write(f"Analisando: **{top_service_name}**")
         
-        transitions = load_transitions_data(period, date, top_service_url)
+        transitions = load_transitions_data(period, date, top_service_url, selected_site_id)
         
         col_origem, col_destino = st.columns(2)
         with col_origem:

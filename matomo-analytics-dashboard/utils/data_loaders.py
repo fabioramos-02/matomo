@@ -47,6 +47,10 @@ def load_outlinks_data(_api, p, d, sid):
     return _api.get_outlinks(p, d, site_id=sid, limit=50)
 
 @st.cache_data(ttl=3600)
+def load_entry_pages_data(_api, p, d, sid):
+    return _api.get_entry_pages(p, d, site_id=sid, limit=20)
+
+@st.cache_data(ttl=3600)
 def load_last_visits_data(_api, p, d, sid, segment):
     return _api.get_last_visits(p, d, site_id=sid, segment=segment, limit=10)
 

@@ -69,6 +69,11 @@ class MatomoAPI:
     def get_outlinks(self, period, date, site_id=None, limit=50):
         return self.get_data('Actions.getOutlinks', period, date, {'filter_limit': limit}, site_id)
 
+    def get_entry_pages(self, period, date, site_id=None, limit=20):
+        # Usamos flat=0 para trazer agrupado (pastas/categorias) e flat=1 se quisermos a lista crua.
+        # Aqui, flat=1 é melhor para o ranking das URLs absolutas de entrada.
+        return self.get_data('Actions.getEntryPageUrls', period, date, {'filter_limit': limit, 'flat': 1}, site_id)
+
     def get_last_visits(self, period, date, site_id=None, segment=None, limit=10):
         params = {'filter_limit': limit}
         if segment:

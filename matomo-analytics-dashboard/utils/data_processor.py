@@ -32,50 +32,73 @@ def process_page_urls(data):
         df = df.sort_values(by='Visitas', ascending=False).reset_index(drop=True)
     return df
 
+# Mapeamento oficial de categorias do Portal de Serviços
+CATEGORIAS_MAPEAMENTO = {
+    "administracao-publica": "Administração Pública",
+    "agropecuaria-e-vida-rural": "Agropecuária e Vida Rural",
+    "arte-e-cultura": "Arte e Cultura",
+    "assistencia-social": "Assistência Social",
+    "ciencia-e-tecnologia": "Ciência e Tecnologia",
+    "comunicacao-e-transparencia": "Comunicação e Transparência",
+    "direitos-e-cidadania": "Direitos e Cidadania",
+    "educacao-e-pesquisa": "Educação e Pesquisa",
+    "empresa-industria-e-comercio": "Empresa, Indústria e Comércio",
+    "energia": "Energia",
+    "esporte-e-lazer": "Esporte e Lazer",
+    "financas-e-impostos": "Finanças e Impostos",
+    "forcas-armadas-e-defesa-civil": "Forças Armadas e Defesa Civil",
+    "habitacao": "Habitação",
+    "infraestrutura": "Infraestrutura",
+    "justica": "Justiça",
+    "meio-ambiente": "Meio Ambiente",
+    "saude-e-cuidado": "Saúde e Cuidado",
+    "seguranca": "Segurança",
+    "trabalho-emprego-e-previdencia": "Trabalho, Emprego e Previdência",
+    "transito-e-transportes": "Trânsito e Transportes",
+    "turismo": "Turismo"
+}
+
 def identify_service_cards(df):
     """
-    Filtra o DataFrame para encontrar "Cartas de Serviço" baseadas no padrão /categoria/slug.
+    Filtra o DataFrame para encontrar "Cartas de Serviço" baseadas nas categorias oficiais.
     Normaliza os nomes das categorias e dos serviços.
     """
     if df.empty:
         return df
         
-    keywords = ['requerer', 'solicitar', 'agendar', 'pagar', 'consultar', 'emitir', 'atendimento', 'declaracao', 'certidao', 'inscricao']
     rows = []
     
     for _, row in df.iterrows():
         url = row['URL']
         parts = [p for p in url.split('/') if p]
         
-        # Padrão de serviço geralmente tem pelo menos Categoria e Slug
+        # Padrão de serviço tem pelo menos Categoria e Slug
         if len(parts) >= 2:
-            categoria_raw = parts[0]
+            categoria_raw = parts[0].lower()
             slug_raw = parts[1]
             
-            # Ignora categorias genéricas
-            if categoria_raw.lower() in ['index', 'busca', 'search', 'nggallery', 'wp-content']:
-                continue
+            # Validação rigorosa: A categoria da URL DEVE existir no nosso dicionário oficial
+            if categoria_raw in CATEGORIAS_MAPEAMENTO:
+                categoria_nome = CATEGORIAS_MAPEAMENTO[categoria_raw]
                 
-            # Verifica se o slug parece um serviço (tem hifen, ou alguma palavra chave)
-            has_hyphen = '-' in slug_raw
-            no_file_ext = not re.search(r'\.(jpg|png|pdf|css|js)$', slug_raw.lower())
-            
-            if has_hyphen and no_file_ext:
-                categoria_nome = categoria_raw.replace('-', ' ').title()
+                # Regras adicionais: o slug precisa ter hifen e não pode ser arquivo
+                has_hyphen = '-' in slug_raw
+                no_file_ext = not re.search(r'\.(jpg|png|pdf|css|js)$', slug_raw.lower())
                 
-                # Normaliza o nome do serviço (remove os IDs no final e troca hifen por espaço)
-                servico_nome = re.sub(r'\d+$', '', slug_raw)
-                servico_nome = servico_nome.replace('-', ' ').title()
-                
-                link = f"https://www.ms.gov.br/{categoria_raw}/{slug_raw}"
-                
-                rows.append({
-                    'URL_Original': url,
-                    'Categoria': categoria_nome,
-                    'Nome do Serviço': servico_nome,
-                    'Visitas': row['Visitas'],
-                    'Link': link
-                })
+                if has_hyphen and no_file_ext:
+                    # Normaliza o nome do serviço (remove os IDs no final e troca hifen por espaço)
+                    servico_nome = re.sub(r'\d+$', '', slug_raw)
+                    servico_nome = servico_nome.replace('-', ' ').title()
+                    
+                    link = f"https://www.ms.gov.br/{categoria_raw}/{slug_raw}"
+                    
+                    rows.append({
+                        'URL_Original': url,
+                        'Categoria': categoria_nome,
+                        'Nome do Serviço': servico_nome,
+                        'Visitas': row['Visitas'],
+                        'Link': link
+                    })
 
     service_df = pd.DataFrame(rows)
     # Se houver URLs duplicadas (ex: /cat/slug e /cat/slug/imprimir), agrupa pelo link principal

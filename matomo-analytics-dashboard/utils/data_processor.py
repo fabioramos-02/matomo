@@ -150,6 +150,9 @@ def process_cities_ms(data):
         if "Mato Grosso do Sul" in label:
             # Pega só o nome da cidade, antes da vírgula
             city_name = label.split(",")[0].strip()
+            # Remove parênteses como "Campo Grande (Jardim Veraneio)" -> "Campo Grande"
+            city_name = re.sub(r'\s*\(.*?\)', '', city_name).strip()
+            
             rows.append({
                 'Cidade': city_name,
                 'Visitas': item.get('nb_visits', 0)
@@ -157,6 +160,8 @@ def process_cities_ms(data):
     
     df = pd.DataFrame(rows)
     if not df.empty:
+        # Agrupa para somar cidades normalizadas iguais
+        df = df.groupby('Cidade', as_index=False)['Visitas'].sum()
         df = df.sort_values(by='Visitas', ascending=False).reset_index(drop=True)
     return df
 
@@ -174,14 +179,22 @@ def process_visit_time(data):
     return pd.DataFrame()
 
 def process_browsers(data):
-    """Processa a lista de navegadores."""
+    """Processa a lista de navegadores e agrupa o restante em 'Outros'."""
     if not data or not isinstance(data, list):
         return pd.DataFrame()
     
     df = pd.DataFrame(data)
     if 'label' in df.columns and 'nb_visits' in df.columns:
         df = df[['label', 'nb_visits']].rename(columns={'label': 'Navegador', 'nb_visits': 'Visitas'})
-        return df.head(10)
+        
+        if len(df) > 5:
+            df = df.sort_values(by='Visitas', ascending=False).reset_index(drop=True)
+            top_4 = df.head(4)
+            outros_visitas = df.iloc[4:]['Visitas'].sum()
+            df_outros = pd.DataFrame([{'Navegador': 'Outros', 'Visitas': outros_visitas}])
+            df = pd.concat([top_4, df_outros], ignore_index=True)
+            
+        return df
     return pd.DataFrame()
 
 def process_device_types(data):

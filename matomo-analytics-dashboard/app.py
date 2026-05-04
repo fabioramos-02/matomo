@@ -1,28 +1,45 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
+from datetime import date as dt_date, timedelta
+
+# Importa configurações e inicialização de API
 from config import DEFAULT_PERIOD, DEFAULT_DATE, MATOMO_SITE_ID
 from api.matomo_client import MatomoAPI
-from utils.data_processor import (
-    process_page_urls, identify_service_cards, process_search_keywords, process_transitions,
-    process_cities_ms, process_visit_time, process_browsers, process_device_types
+
+# Importa Loaders (que possuem o cache do Streamlit)
+from utils.data_loaders import (
+    load_page_data,
+    load_search_data,
+    load_geography_data,
+    load_visit_time_data,
+    load_devices_data,
+    load_ms_geojson
 )
 
-st.set_page_config(page_title="Dashboard Matomo - MS.GOV.BR", layout="wide", page_icon="📊")
+# Importa as Views (Abas)
+from views.tab1_perfil import render_tab1_perfil
+from views.tab2_busca import render_tab2_busca
+from views.tab3_servicos import render_tab3_servicos
+from views.tab4_jornada import render_tab4_jornada
 
-# Inicializa API
-@st.cache_resource
+# Configuração da Página
+st.set_page_config(page_title="Matomo Analytics", page_icon="📊", layout="wide")
+
+# Instancia a API sem cache para evitar problemas de versão na nuvem
 def get_api():
-    return MatomoAPI()
+    from config import MATOMO_URL, MATOMO_TOKEN, MATOMO_SITE_ID
+    if not MATOMO_TOKEN:
+        st.error("Token do Matomo não configurado. Por favor, adicione-o nas configurações.")
+        st.stop()
+    return MatomoAPI(base_url=MATOMO_URL, token=MATOMO_TOKEN, site_id=MATOMO_SITE_ID)
 
 api = get_api()
 
-from datetime import date as dt_date, timedelta
-
-# Sidebar para Filtros
+# ==========================================
+# BARRA LATERAL (Filtros)
+# ==========================================
 st.sidebar.title("Filtros")
 
-# Busca de Sites Dinâmica
+# Seleção Dinâmica de Sites
 with st.spinner("Carregando sites..."):
     sites_data = api.get_sites()
     
@@ -30,14 +47,10 @@ if not sites_data:
     st.sidebar.error("Erro ao buscar sites.")
     st.stop()
 
-# Mapeia nomes para IDs (ex: {'MS': 298, 'SGI': 1})
 sites_map = {site['name']: site['idsite'] for site in sites_data}
-
-# Hardcode: O site 298 não retorna na API por uma restrição de acesso, então injetamos ele na lista:
 sites_map["Portal de Serviços MS"] = int(MATOMO_SITE_ID)
 
 default_site_index = 0
-# Tenta selecionar o site configurado por padrão se existir na lista
 for i, (name, idsite) in enumerate(sites_map.items()):
     if str(idsite) == str(MATOMO_SITE_ID):
         default_site_index = i
@@ -85,204 +98,54 @@ else:
     )
     date = single_date.strftime("%Y-%m-%d")
 
-st.title("📊 Análise de Jornada do Usuário - Portal de Serviços MS")
+# ==========================================
+# CABEÇALHO DO DASHBOARD
+# ==========================================
+if period == "range":
+    periodo_str = f"Intervalo: {start_d.strftime('%d/%m/%Y')} a {end_d.strftime('%d/%m/%Y')}"
+else:
+    periodo_str = f"Data Base: {single_date.strftime('%d/%m/%Y')} | Recorte: {period_label}"
+
+st.title(f"📊 Dashboard Analítico - {selected_site_name}")
+st.markdown(f"**🗓️ Período Analisado:** {periodo_str}")
 st.markdown("""
 Este painel consome a API do Matomo para extrair informações sobre acessos, 
 buscas e transições (jornada) nas **Cartas de Serviço** do portal.
 """)
 
-# Funções com cache para não sobrecarregar a API
-@st.cache_data(ttl=3600) # Cache de 1 hora
-def load_page_data(p, d, sid):
-    data = api.get_page_urls(p, d, site_id=sid, limit=500)
-    return process_page_urls(data)
-
-@st.cache_data(ttl=3600)
-def load_search_data(p, d, sid):
-    data = api.get_site_search_keywords(p, d, site_id=sid, limit=100)
-    return process_search_keywords(data)
-
-@st.cache_data(ttl=3600)
-def load_transitions_data(p, d, url, sid):
-    data = api.get_transitions(p, d, url, site_id=sid)
-    return process_transitions(data)
-
-@st.cache_data(ttl=3600)
-def load_geography_data(p, d, sid):
-    data = api.get_city(p, d, site_id=sid, limit=500)
-    return process_cities_ms(data)
-
-@st.cache_data(ttl=3600)
-def load_visit_time_data(p, d, sid):
-    data = api.get_visit_time(p, d, site_id=sid)
-    return process_visit_time(data)
-
-@st.cache_data(ttl=3600)
-def load_devices_data(p, d, sid):
-    data_browsers = api.get_browsers(p, d, site_id=sid)
-    data_types = api.get_device_type(p, d, site_id=sid)
-    return process_browsers(data_browsers), process_device_types(data_types)
-
-@st.cache_data(ttl=86400) # Cache de 1 dia para o mapa
-def load_ms_geojson():
-    import urllib.request, json
-    url = "https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-50-mun.json"
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req) as response:
-        return json.loads(response.read().decode())
-
-# Carregamento de Dados Principais
+# ==========================================
+# CARREGAMENTO GLOBAL DE DADOS
+# ==========================================
 with st.spinner("Buscando dados no Matomo... Isso pode demorar para períodos longos como 'year'."):
-    df_pages = load_page_data(period, date, selected_site_id)
-    df_search = load_search_data(period, date, selected_site_id)
-    df_cities = load_geography_data(period, date, selected_site_id)
-    df_time = load_visit_time_data(period, date, selected_site_id)
-    df_browsers, df_device_types = load_devices_data(period, date, selected_site_id)
+    df_pages = load_page_data(api, period, date, selected_site_id)
+    df_search = load_search_data(api, period, date, selected_site_id)
+    df_cities = load_geography_data(api, period, date, selected_site_id)
+    df_time = load_visit_time_data(api, period, date, selected_site_id)
+    df_browsers, df_device_types = load_devices_data(api, period, date, selected_site_id)
+    ms_geojson = load_ms_geojson()
     
 if df_pages.empty:
     st.error("Nenhum dado retornado da API ou ocorreu um erro na conexão.")
     st.stop()
 
-# Dividindo em abas
+# ==========================================
+# RENDERIZAÇÃO DAS ABAS (VIEWS)
+# ==========================================
 tab1, tab2, tab3, tab4 = st.tabs([
-    "📈 Visão Executiva", 
-    "🗺️ Geografia (MS)", 
-    "📝 Cartas de Serviço & Jornada", 
-    "🔍 Pesquisas e Geral"
+    "1. Perfil do Cidadão",
+    "2. Intenção de Busca",
+    "3. Serviços Consumidos",
+    "4. Fluxo de Navegação"
 ])
 
 with tab1:
-    st.header("Resumo Executivo")
-    st.markdown("Visualização de alto nível sobre como e quando os usuários acessam o portal.")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Picos de Acesso por Horário")
-        if not df_time.empty:
-            fig_time = px.bar(df_time, x='Hora', y='Visitas', color_discrete_sequence=['#ff7f0e'])
-            st.plotly_chart(fig_time, use_container_width=True)
-        else:
-            st.info("Sem dados de horário disponíveis.")
-            
-    with col2:
-        st.subheader("Tipos de Dispositivo")
-        if not df_device_types.empty:
-            fig_devices = px.pie(df_device_types, names='Dispositivo', values='Visitas', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
-            st.plotly_chart(fig_devices, use_container_width=True)
-        else:
-            st.info("Sem dados de dispositivos disponíveis.")
-            
-    st.subheader("Top Navegadores")
-    if not df_browsers.empty:
-        fig_browsers = px.bar(df_browsers, x='Visitas', y='Navegador', orientation='h', color='Visitas', color_continuous_scale='Purples')
-        fig_browsers.update_layout(yaxis={'categoryorder':'total ascending'})
-        st.plotly_chart(fig_browsers, use_container_width=True)
+    render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geojson)
 
 with tab2:
-    st.header("Distribuição Geográfica (Mato Grosso do Sul)")
-    st.markdown("Cidades do MS que mais acessaram o portal no período selecionado.")
-    if not df_cities.empty:
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            try:
-                ms_geojson = load_ms_geojson()
-                # O Matomo as vezes retorna 'Unknown' que não mapeia no mapa, vamos ignorar na renderização do mapa
-                df_map = df_cities[df_cities['Cidade'] != 'Unknown'].copy()
-                
-                # Plotly Map
-                fig_cities = px.choropleth_mapbox(
-                    df_map, 
-                    geojson=ms_geojson, 
-                    locations='Cidade', 
-                    featureidkey='properties.name',
-                    color='Visitas',
-                    color_continuous_scale='Greens',
-                    mapbox_style='carto-positron',
-                    zoom=5, 
-                    center={'lat': -20.44278, 'lon': -54.64639},
-                    opacity=0.7,
-                    title="Acessos por Município (MS)"
-                )
-                fig_cities.update_layout(margin={"r":0,"t":40,"l":0,"b":0})
-                st.plotly_chart(fig_cities, use_container_width=True)
-            except Exception as e:
-                st.warning(f"Não foi possível carregar o mapa interativo. Exibindo gráfico de barras como fallback. ({e})")
-                fig_cities = px.bar(df_cities.head(15), x='Cidade', y='Visitas', color='Visitas', color_continuous_scale='Greens', title="Top 15 Cidades do MS")
-                st.plotly_chart(fig_cities, use_container_width=True)
-        with col2:
-            st.dataframe(df_cities, height=400)
-    else:
-        st.info("Nenhum dado de cidade encontrado para o MS no período.")
+    render_tab2_busca(df_search)
 
 with tab3:
-    st.header("Top Cartas de Serviço Mais Acessadas")
-    st.markdown("*Identificadas pelo padrão Categoria/Serviço nas URLs.*")
-    
-    df_services = identify_service_cards(df_pages)
-    
-    if not df_services.empty:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("Top Categorias de Serviço")
-            df_cat = df_services.groupby('Categoria', as_index=False)['Visitas'].sum().sort_values(by='Visitas', ascending=False)
-            fig_cat = px.bar(df_cat.head(10), x='Visitas', y='Categoria', orientation='h', color='Visitas', color_continuous_scale='Oranges')
-            fig_cat.update_layout(yaxis={'categoryorder':'total ascending'})
-            st.plotly_chart(fig_cat, use_container_width=True)
-            
-        with col2:
-            st.subheader("Top 10 Cartas Específicas")
-            fig_serv = px.bar(df_services.head(10), x='Visitas', y='Nome do Serviço', orientation='h', color='Visitas', color_continuous_scale='Blues')
-            fig_serv.update_layout(yaxis={'categoryorder':'total ascending'})
-            st.plotly_chart(fig_serv, use_container_width=True)
-
-        st.subheader("Explorar Cartas (Links Diretos)")
-        # Tabela com link clicável
-        st.dataframe(
-            df_services[['Nome do Serviço', 'Categoria', 'Visitas', 'Link']],
-            column_config={
-                "Link": st.column_config.LinkColumn("Acessar no Portal", display_text="🔗 Abrir Serviço")
-            },
-            hide_index=True,
-            use_container_width=True
-        )
-        
-        # Detalhe / Jornada do Top 1
-        st.subheader("Jornada da Principal Carta de Serviço")
-        top_service_url = df_services.iloc[0]['URL_Original']
-        top_service_name = df_services.iloc[0]['Nome do Serviço']
-        st.write(f"Analisando: **{top_service_name}**")
-        
-        transitions = load_transitions_data(period, date, top_service_url, selected_site_id)
-        
-        col_origem, col_destino = st.columns(2)
-        with col_origem:
-            st.write("⬅️ **De onde vieram (Páginas Anteriores)**")
-            if transitions.get('origens'):
-                st.table(pd.DataFrame(transitions['origens']))
-            else:
-                st.info("Sem dados suficientes.")
-                
-        with col_destino:
-            st.write("➡️ **Para onde foram (Próximas Páginas)**")
-            if transitions.get('destinos'):
-                st.table(pd.DataFrame(transitions['destinos']))
-            else:
-                st.info("Sem dados suficientes.")
-    else:
-        st.warning("Não foi possível identificar Cartas de Serviço no padrão de URLs para este período.")
+    render_tab3_servicos(df_pages)
 
 with tab4:
-    col1, col2 = st.columns(2)
-    with col1:
-        st.header("O que os cidadãos buscam?")
-        if not df_search.empty:
-            fig_search = px.bar(df_search.head(15), x='Buscas', y='Palavra-chave', orientation='h',
-                                title="Top 15 Termos", color='Buscas', color_continuous_scale='Teal')
-            fig_search.update_layout(yaxis={'categoryorder':'total ascending'})
-            st.plotly_chart(fig_search, use_container_width=True)
-        else:
-            st.info("Nenhum dado de busca.")
-            
-    with col2:
-        st.header("Páginas Mais Acessadas (Geral)")
-        st.dataframe(df_pages.head(50), height=400)
+    render_tab4_jornada(df_pages, api, period, date, selected_site_id)

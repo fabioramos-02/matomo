@@ -1,6 +1,7 @@
 # Matomo Analytics Dashboard
 
 🌐 **Ambiente de Produção (Online):** [https://setdig-dados.streamlit.app/](https://setdig-dados.streamlit.app/)
+📚 **Documentação da API do Matomo:** [Matomo Reporting API](https://developer.matomo.org/api-reference/reporting-api)
 
 Aplicação em Python utilizando Streamlit para consumo da API do Matomo (webanalytics.ms.gov.br) e visualização focada na Jornada do Usuário no Portal de Serviços (idSite=298).
 

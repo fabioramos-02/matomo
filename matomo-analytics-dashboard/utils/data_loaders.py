@@ -42,6 +42,14 @@ def load_devices_data(_api, p, d, sid):
     data_types = _api.get_device_type(p, d, site_id=sid)
     return process_browsers(data_browsers), process_device_types(data_types)
 
+@st.cache_data(ttl=3600)
+def load_outlinks_data(_api, p, d, sid):
+    return _api.get_outlinks(p, d, site_id=sid, limit=50)
+
+@st.cache_data(ttl=3600)
+def load_last_visits_data(_api, p, d, sid, segment):
+    return _api.get_last_visits(p, d, site_id=sid, segment=segment, limit=10)
+
 @st.cache_data(ttl=86400)
 def load_ms_geojson():
     url = "https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-50-mun.json"

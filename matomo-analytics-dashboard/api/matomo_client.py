@@ -65,3 +65,12 @@ class MatomoAPI:
 
     def get_device_type(self, period, date, site_id=None):
         return self.get_data('DevicesDetection.getType', period, date, None, site_id)
+
+    def get_outlinks(self, period, date, site_id=None, limit=50):
+        return self.get_data('Actions.getOutlinks', period, date, {'filter_limit': limit}, site_id)
+
+    def get_last_visits(self, period, date, site_id=None, segment=None, limit=10):
+        params = {'filter_limit': limit}
+        if segment:
+            params['segment'] = segment
+        return self.get_data('Live.getLastVisitsDetails', period, date, params, site_id)

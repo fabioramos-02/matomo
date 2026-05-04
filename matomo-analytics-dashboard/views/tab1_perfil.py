@@ -5,7 +5,7 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
     st.header("Perfil do Cidadão")
     st.markdown("Quem são, de onde vêm, com qual dispositivo e em qual horário acessam.")
     
-    st.subheader("Distribuição Geográfica (Mato Grosso do Sul)")
+    st.subheader("🗺️ Distribuição Geográfica (Mato Grosso do Sul)")
     if not df_cities.empty:
         col_map, col_tab = st.columns([2, 1])
         with col_map:
@@ -28,25 +28,37 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
         
     st.markdown("---")
     
-    col_devices, col_time = st.columns(2)
-    with col_devices:
-        st.subheader("Dispositivos e Navegadores")
-        col_b, col_t = st.columns(2)
-        with col_b:
-            if not df_browsers.empty:
-                fig_b = px.pie(df_browsers, values='Visitas', names='Navegador', hole=0.4, title='Navegadores')
-                fig_b.update_traces(textposition='inside', textinfo='percent+label')
-                st.plotly_chart(fig_b, use_container_width=True)
-        with col_t:
-            if not df_device_types.empty:
-                fig_d = px.pie(df_device_types, values='Visitas', names='Dispositivo', hole=0.4, title='Dispositivos')
-                fig_d.update_traces(textposition='inside', textinfo='percent+label')
-                st.plotly_chart(fig_d, use_container_width=True)
-                
-    with col_time:
-        st.subheader("Picos de Acesso por Horário")
-        if not df_time.empty:
-            fig_time = px.bar(df_time, x='Hora', y='Visitas', color_discrete_sequence=['#ff7f0e'])
-            st.plotly_chart(fig_time, use_container_width=True)
-        else:
-            st.info("Sem dados de horário disponíveis.")
+    st.subheader("⏰ Picos de Acesso por Horário")
+    if not df_time.empty:
+        fig_time = px.bar(df_time, x='Hora', y='Visitas', color_discrete_sequence=['#ff7f0e'])
+        fig_time.update_xaxes(dtick=1) # Força a exibição de todos os ticks de hora
+        st.plotly_chart(fig_time, use_container_width=True)
+    else:
+        st.info("Sem dados de horário disponíveis.")
+        
+    st.markdown("---")
+    
+    st.subheader("💻 Dispositivos e Navegadores")
+    col_b, col_t = st.columns(2)
+    
+    with col_b:
+        if not df_browsers.empty:
+            st.markdown("**Navegadores Mais Utilizados**")
+            fig_b = px.pie(df_browsers, values='Visitas', names='Navegador', hole=0.5, color_discrete_sequence=px.colors.sequential.Blues_r)
+            fig_b.update_traces(textposition='inside', textinfo='percent')
+            fig_b.update_layout(
+                legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+                margin=dict(t=20, b=40, l=20, r=20)
+            )
+            st.plotly_chart(fig_b, use_container_width=True)
+            
+    with col_t:
+        if not df_device_types.empty:
+            st.markdown("**Tipos de Dispositivo**")
+            fig_d = px.pie(df_device_types, values='Visitas', names='Dispositivo', hole=0.5, color_discrete_sequence=px.colors.sequential.Teal_r)
+            fig_d.update_traces(textposition='inside', textinfo='percent')
+            fig_d.update_layout(
+                legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+                margin=dict(t=20, b=40, l=20, r=20)
+            )
+            st.plotly_chart(fig_d, use_container_width=True)

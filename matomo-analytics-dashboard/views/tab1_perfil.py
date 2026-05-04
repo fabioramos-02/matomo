@@ -44,7 +44,8 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
     with col_b:
         if not df_browsers.empty:
             st.markdown("**Navegadores Mais Utilizados**")
-            fig_b = px.pie(df_browsers, values='Visitas', names='Navegador', hole=0.5, color_discrete_sequence=px.colors.sequential.Blues_r)
+            # Usa paleta qualitativa vibrante (melhor para categorias independentes)
+            fig_b = px.pie(df_browsers, values='Visitas', names='Navegador', hole=0.5, color_discrete_sequence=px.colors.qualitative.Pastel)
             fig_b.update_traces(textposition='inside', textinfo='percent')
             fig_b.update_layout(
                 legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
@@ -55,7 +56,8 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
     with col_t:
         if not df_device_types.empty:
             st.markdown("**Tipos de Dispositivo**")
-            fig_d = px.pie(df_device_types, values='Visitas', names='Dispositivo', hole=0.5, color_discrete_sequence=px.colors.sequential.Teal_r)
+            # Usa paleta qualitativa vibrante 
+            fig_d = px.pie(df_device_types, values='Visitas', names='Dispositivo', hole=0.5, color_discrete_sequence=px.colors.qualitative.Set2)
             fig_d.update_traces(textposition='inside', textinfo='percent')
             fig_d.update_layout(
                 legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),

@@ -35,7 +35,7 @@ class MatomoAPI:
     def get_data(self, method, period=None, date=None, extra_params=None, site_id=None):
         url = self._build_url(method, period, date, extra_params, site_id)
         try:
-            response = requests.get(url, timeout=30)
+            response = requests.get(url, timeout=90)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:

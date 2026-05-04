@@ -43,8 +43,9 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id):
         url_alvo = row['URL_Original']
         
         # Correção da URL: A API Transitions do Matomo precisa da URL absoluta (ou exata)
-        # Se a label vier apenas como /categoria/servico, injetamos o domínio padrão.
-        if url_alvo.startswith('/'):
+        if not url_alvo.startswith('http'):
+            if not url_alvo.startswith('/'):
+                url_alvo = '/' + url_alvo
             url_alvo = "https://www.ms.gov.br" + url_alvo
         
         with st.spinner("Calculando transições... (O primeiro carregamento é direto da API e pode demorar um pouco, mas depois fica em cache)"):

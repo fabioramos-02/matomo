@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from utils.data_processor import identify_service_cards
-from utils.data_loaders import load_transitions_data, load_outlinks_data
+from utils.data_loaders import load_transitions_data, load_outlinks_data, load_entry_pages_data
 
 def render_tab4_jornada(df_pages, api, period, date, selected_site_id):
     st.header("Fluxo de Navegação (Jornada)")
@@ -10,60 +9,95 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id):
     
     st.markdown("---")
     
-    # 1. OUTLINKS (Destino Final)
-    st.subheader("1. Fuga do Hub (Links Externos)")
-    st.markdown("Para onde os cidadãos vão ao sair do portal?")
-    with st.spinner("Analisando destinos..."):
-        outlinks = load_outlinks_data(api, period, date, selected_site_id)
-        if outlinks:
-            df_out = pd.DataFrame(outlinks)
-            if 'label' in df_out.columns and 'nb_visits' in df_out.columns:
-                df_out = df_out[['label', 'nb_visits']].rename(columns={'label': 'Domínio de Destino', 'nb_visits': 'Visitas'})
-                df_out = df_out[~df_out['Domínio de Destino'].str.contains('ms.gov.br/login')] # Ignora login
-                
-                # Exibe o gráfico de outlinks
-                fig_out = px.bar(df_out.head(15), x='Visitas', y='Domínio de Destino', orientation='h', color='Visitas', color_continuous_scale='Reds')
-                fig_out.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.plotly_chart(fig_out, use_container_width=True)
-        else:
-            st.info("Não há registros de links externos suficientes no período.")
+    col_entry, col_out = st.columns(2)
+    
+    # 1. PORTAS DE ENTRADA
+    with col_entry:
+        st.subheader("🚪 Portas de Entrada (Landing Pages)")
+        st.markdown("Por onde os cidadãos começaram a navegação?")
+        with st.spinner("Carregando entradas..."):
+            entradas = load_entry_pages_data(api, period, date, selected_site_id)
+            if entradas:
+                df_entry = pd.DataFrame(entradas)
+                if 'label' in df_entry.columns and 'nb_visits' in df_entry.columns:
+                    df_entry = df_entry[['label', 'nb_visits']].rename(columns={'label': 'Página Inicial', 'nb_visits': 'Entradas'})
+                    df_entry['Página Inicial'] = df_entry['Página Inicial'].apply(lambda x: "Home (Index)" if x == "/" else x)
+                    
+                    fig_entry = px.bar(df_entry.head(10), x='Entradas', y='Página Inicial', orientation='h', color='Entradas', color_continuous_scale='Greens')
+                    fig_entry.update_layout(yaxis={'categoryorder':'total ascending'})
+                    st.plotly_chart(fig_entry, use_container_width=True)
+            else:
+                st.info("Sem dados de entrada no período.")
+
+    # 2. OUTLINKS
+    with col_out:
+        st.subheader("✈️ Fuga do Hub (Links Externos)")
+        st.markdown("Para onde os cidadãos vão ao sair do portal?")
+        with st.spinner("Analisando destinos..."):
+            outlinks = load_outlinks_data(api, period, date, selected_site_id)
+            if outlinks:
+                df_out = pd.DataFrame(outlinks)
+                if 'label' in df_out.columns and 'nb_visits' in df_out.columns:
+                    df_out = df_out[['label', 'nb_visits']].rename(columns={'label': 'Domínio de Destino', 'nb_visits': 'Saídas'})
+                    df_out = df_out[~df_out['Domínio de Destino'].str.contains('ms.gov.br/login')]
+                    
+                    fig_out = px.bar(df_out.head(10), x='Saídas', y='Domínio de Destino', orientation='h', color='Saídas', color_continuous_scale='Reds')
+                    fig_out.update_layout(yaxis={'categoryorder':'total ascending'})
+                    st.plotly_chart(fig_out, use_container_width=True)
+            else:
+                st.info("Sem dados de saída no período.")
 
     st.markdown("---")
 
-    # 2. TRANSITIONS (Micro-Funil Específico)
-    st.subheader("2. Análise Focada (Micro-Funil)")
-    st.markdown("Selecione uma Carta de Serviço específica para entender a origem e o destino imediato dela.")
+    # 3. MACRO-FLUXO DA HOME
+    st.subheader("🛣️ Padrão Comportamental: A partir da Página Principal")
+    st.markdown("O que o cidadão acessa logo após entrar na Home (`/index`)?")
     
-    df_services = identify_service_cards(df_pages)
-    if not df_services.empty:
-        opcoes = df_services['Nome do Serviço'].tolist()
-        servico_selecionado = st.selectbox("Selecione o Serviço para analisar:", opcoes)
+    url_home = "https://www.ms.gov.br/"
+    
+    with st.spinner("Analisando macro-fluxo... (Isso pode demorar dependendo do período selecionado)"):
+        transitions = load_transitions_data(api, period, date, url_home, selected_site_id)
         
-        row = df_services[df_services['Nome do Serviço'] == servico_selecionado].iloc[0]
-        url_alvo = row['URL_Original']
-        
-        # Correção da URL: A API Transitions do Matomo precisa da URL absoluta (ou exata)
-        if not url_alvo.startswith('http'):
-            if not url_alvo.startswith('/'):
-                url_alvo = '/' + url_alvo
-            url_alvo = "https://www.ms.gov.br" + url_alvo
-        
-        with st.spinner("Calculando transições... (O primeiro carregamento é direto da API e pode demorar um pouco, mas depois fica em cache)"):
-            transitions = load_transitions_data(api, period, date, url_alvo, selected_site_id)
+        if transitions and transitions.get('followingPages'):
+            df_trans = pd.DataFrame(transitions['followingPages'])
             
-            col_origem, col_destino = st.columns(2)
-            with col_origem:
-                st.write("⬅️ **De onde vieram (Páginas Anteriores)**")
-                if transitions and transitions.get('origens') and len(transitions['origens']) > 0:
-                    st.table(pd.DataFrame(transitions['origens']))
-                else:
-                    st.warning("Sem dados suficientes de origem. Ninguém acessou essa página vindo de outro link interno neste período.")
-                    
-            with col_destino:
-                st.write("➡️ **Para onde foram (Próximas Páginas)**")
-                if transitions and transitions.get('destinos') and len(transitions['destinos']) > 0:
-                    st.table(pd.DataFrame(transitions['destinos']))
-                else:
-                    st.warning("Sem dados suficientes de destino. Isso geralmente significa que o cidadão saiu do site (Outlink) a partir daqui.")
-    else:
-        st.warning("Não há dados de serviço para analisar o micro-funil.")
+            # Limpeza de dados de transição
+            df_trans = df_trans.rename(columns={'label': 'Página de Destino', 'referrals': 'Acessos'})
+            df_trans['Página de Destino'] = df_trans['Página de Destino'].str.replace('ms.gov.br', '', regex=False)
+            
+            # Classificação da Jornada
+            def classificar_jornada(url):
+                if not url or url == '/': return 'Recargas/Outros'
+                parts = [p for p in url.split('/') if p]
+                if len(parts) == 0: return 'Recargas/Outros'
+                
+                first = parts[0].lower()
+                if first in ['workspace', 'login']: return 'Acesso a Sistemas (Login/Workspace)'
+                if first in ['noticias']: return 'Notícias'
+                if len(parts) == 1: return 'Exploração por Categoria/Órgão'
+                if len(parts) >= 2: return 'Acesso Direto ao Serviço'
+                
+                return 'Outros'
+                
+            df_trans['Tipo de Jornada'] = df_trans['Página de Destino'].apply(classificar_jornada)
+            
+            col_chart, col_table = st.columns([1, 1.2])
+            
+            with col_chart:
+                df_group = df_trans.groupby('Tipo de Jornada')['Acessos'].sum().reset_index()
+                fig_macro = px.pie(df_group, values='Acessos', names='Tipo de Jornada', hole=0.5, color_discrete_sequence=px.colors.qualitative.Prism)
+                fig_macro.update_traces(textposition='inside', textinfo='percent')
+                fig_macro.update_layout(legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="center", x=0.5))
+                st.plotly_chart(fig_macro, use_container_width=True)
+                
+            with col_table:
+                st.write("**Top 10 Destinos Específicos a partir da Home:**")
+                # Filtra lixo visual
+                df_show = df_trans[~df_trans['Tipo de Jornada'].isin(['Recargas/Outros'])].head(10)
+                st.dataframe(
+                    df_show[['Página de Destino', 'Tipo de Jornada', 'Acessos']],
+                    hide_index=True,
+                    use_container_width=True
+                )
+        else:
+            st.warning("Não foi possível carregar os destinos da Página Principal para este período (Timeout ou Sem Dados).")

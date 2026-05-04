@@ -129,13 +129,14 @@ def process_transitions(data):
     previous = data.get('previousPages', [])
     following = data.get('followingPages', [])
     
-    # Pega top 5 origens e destinos
-    top_prev = sorted(previous, key=lambda x: x.get('referrals', 0), reverse=True)[:5]
-    top_next = sorted(following, key=lambda x: x.get('hits', 0), reverse=True)[:5]
+    # Ordena por visitas
+    top_prev = sorted(previous, key=lambda x: x.get('referrals', 0), reverse=True)
+    top_next = sorted(following, key=lambda x: x.get('hits', 0), reverse=True)
     
     return {
         'origens': [{'URL': p.get('label'), 'Visitas': p.get('referrals')} for p in top_prev],
-        'destinos': [{'URL': p.get('label'), 'Visitas': p.get('hits')} for p in top_next]
+        'destinos': [{'URL': p.get('label'), 'Visitas': p.get('hits')} for p in top_next],
+        'followingPages': following # Mantém os dados originais para o macro-fluxo
     }
 
 def process_cities_ms(data):

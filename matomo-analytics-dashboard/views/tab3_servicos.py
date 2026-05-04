@@ -54,9 +54,16 @@ def render_tab3_servicos(df_pages):
             st.plotly_chart(fig_serv, use_container_width=True)
 
         st.subheader("Explorar Cartas (Links Diretos)")
+        
+        # Adiciona a coluna de ranking/classificação (#)
+        df_table = df_filtered[['Nome do Serviço', 'Categoria', 'Visitas', 'Link']].copy()
+        df_table.reset_index(drop=True, inplace=True)
+        df_table.insert(0, '#', df_table.index + 1)
+        
         st.dataframe(
-            df_filtered[['Nome do Serviço', 'Categoria', 'Visitas', 'Link']],
+            df_table,
             column_config={
+                "#": st.column_config.NumberColumn("#", width="small"),
                 "Link": st.column_config.LinkColumn("Acessar no Portal", display_text="🔗 Abrir Serviço")
             },
             hide_index=True,

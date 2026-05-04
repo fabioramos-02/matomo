@@ -34,37 +34,56 @@ def process_page_urls(data):
 
 def identify_service_cards(df):
     """
-    Filtra o DataFrame para encontrar possíveis "Cartas de Serviço".
-    Como não há um padrão exato, usamos heurísticas:
-    1. A URL contém hifens (ex: solicitar-algo, agendar-atendimento).
-    2. Não é uma página raiz genérica como /index ou /busca.
-    3. Possui verbos ou substantivos de ação comuns.
+    Filtra o DataFrame para encontrar "Cartas de Serviço" baseadas no padrão /categoria/slug.
+    Normaliza os nomes das categorias e dos serviços.
     """
     if df.empty:
         return df
         
-    # Palavras-chave que indicam um serviço
-    keywords = ['requerer', 'solicitar', 'agendar', 'pagar', 'consultar', 'emitir', 'atendimento', 'declaracao', 'certidao']
+    keywords = ['requerer', 'solicitar', 'agendar', 'pagar', 'consultar', 'emitir', 'atendimento', 'declaracao', 'certidao', 'inscricao']
+    rows = []
     
-    def is_service(url):
-        url_lower = url.lower()
-        # Ignora páginas genéricas
-        if url_lower in ['/', '/index', '/busca', '/search']:
-            return False
+    for _, row in df.iterrows():
+        url = row['URL']
+        parts = [p for p in url.split('/') if p]
+        
+        # Padrão de serviço geralmente tem pelo menos Categoria e Slug
+        if len(parts) >= 2:
+            categoria_raw = parts[0]
+            slug_raw = parts[1]
             
-        # Padrão: URL tem hífen e não tem extensão de arquivo comum
-        has_hyphen = '-' in url_lower
-        no_file_ext = not re.search(r'\.(jpg|png|pdf|css|js)$', url_lower)
-        
-        # Opcional: checa se tem alguma keyword
-        has_keyword = any(kw in url_lower for kw in keywords)
-        
-        # A combinação de hifen + sem extensão já filtra bastante as notícias vs páginas raiz.
-        # Adicionar a exigência de keyword torna mais estrito.
-        return has_hyphen and no_file_ext and has_keyword
+            # Ignora categorias genéricas
+            if categoria_raw.lower() in ['index', 'busca', 'search', 'nggallery', 'wp-content']:
+                continue
+                
+            # Verifica se o slug parece um serviço (tem hifen, ou alguma palavra chave)
+            has_hyphen = '-' in slug_raw
+            no_file_ext = not re.search(r'\.(jpg|png|pdf|css|js)$', slug_raw.lower())
+            
+            if has_hyphen and no_file_ext:
+                categoria_nome = categoria_raw.replace('-', ' ').title()
+                
+                # Normaliza o nome do serviço (remove os IDs no final e troca hifen por espaço)
+                servico_nome = re.sub(r'\d+$', '', slug_raw)
+                servico_nome = servico_nome.replace('-', ' ').title()
+                
+                link = f"https://www.ms.gov.br/{categoria_raw}/{slug_raw}"
+                
+                rows.append({
+                    'URL_Original': url,
+                    'Categoria': categoria_nome,
+                    'Nome do Serviço': servico_nome,
+                    'Visitas': row['Visitas'],
+                    'Link': link
+                })
 
-    service_df = df[df['URL'].apply(is_service)].copy()
-    return service_df.head(20) # Top 20 serviços
+    service_df = pd.DataFrame(rows)
+    # Se houver URLs duplicadas (ex: /cat/slug e /cat/slug/imprimir), agrupa pelo link principal
+    if not service_df.empty:
+        service_df = service_df.groupby(['Categoria', 'Nome do Serviço', 'Link'], as_index=False).agg({'Visitas': 'sum', 'URL_Original': 'first'})
+        service_df = service_df.sort_values(by='Visitas', ascending=False).reset_index(drop=True)
+        
+    return service_df
 
 def process_search_keywords(data):
     """Transforma a resposta de SiteSearch em um DataFrame."""

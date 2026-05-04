@@ -190,21 +190,41 @@ with tab2:
 
 with tab3:
     st.header("Top Cartas de Serviço Mais Acessadas")
-    st.markdown("*Identificadas automaticamente via análise de padrão nas URLs.*")
+    st.markdown("*Identificadas pelo padrão Categoria/Serviço nas URLs.*")
     
     df_services = identify_service_cards(df_pages)
     
     if not df_services.empty:
-        # Gráfico
-        fig = px.bar(df_services.head(10), x='Visitas', y='URL', orientation='h', 
-                     title="Top 10 Cartas de Serviço", color='Visitas', color_continuous_scale='Blues')
-        fig.update_layout(yaxis={'categoryorder':'total ascending'})
-        st.plotly_chart(fig, use_container_width=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Top Categorias de Serviço")
+            df_cat = df_services.groupby('Categoria', as_index=False)['Visitas'].sum().sort_values(by='Visitas', ascending=False)
+            fig_cat = px.bar(df_cat.head(10), x='Visitas', y='Categoria', orientation='h', color='Visitas', color_continuous_scale='Oranges')
+            fig_cat.update_layout(yaxis={'categoryorder':'total ascending'})
+            st.plotly_chart(fig_cat, use_container_width=True)
+            
+        with col2:
+            st.subheader("Top 10 Cartas Específicas")
+            fig_serv = px.bar(df_services.head(10), x='Visitas', y='Nome do Serviço', orientation='h', color='Visitas', color_continuous_scale='Blues')
+            fig_serv.update_layout(yaxis={'categoryorder':'total ascending'})
+            st.plotly_chart(fig_serv, use_container_width=True)
+
+        st.subheader("Explorar Cartas (Links Diretos)")
+        # Tabela com link clicável
+        st.dataframe(
+            df_services[['Nome do Serviço', 'Categoria', 'Visitas', 'Link']],
+            column_config={
+                "Link": st.column_config.LinkColumn("Acessar no Portal", display_text="🔗 Abrir Serviço")
+            },
+            hide_index=True,
+            use_container_width=True
+        )
         
         # Detalhe / Jornada do Top 1
         st.subheader("Jornada da Principal Carta de Serviço")
-        top_service_url = df_services.iloc[0]['URL']
-        st.write(f"Analisando a URL: `{top_service_url}`")
+        top_service_url = df_services.iloc[0]['URL_Original']
+        top_service_name = df_services.iloc[0]['Nome do Serviço']
+        st.write(f"Analisando: **{top_service_name}**")
         
         transitions = load_transitions_data(period, date, top_service_url)
         

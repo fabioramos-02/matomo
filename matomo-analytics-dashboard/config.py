@@ -1,9 +1,22 @@
 import os
+import streamlit as st
+
+# Função segura para pegar configurações
+def get_config(key, default_value=None):
+    # 1. Tenta pegar do gerenciador de segredos do Streamlit Cloud (ou local .streamlit/secrets.toml)
+    try:
+        if key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
+    
+    # 2. Tenta pegar de variáveis de ambiente do SO (Docker, etc)
+    return os.getenv(key, default_value)
 
 # Configurações da API do Matomo
-MATOMO_URL = os.getenv("MATOMO_URL", "https://webanalytics.ms.gov.br/")
-MATOMO_SITE_ID = os.getenv("MATOMO_SITE_ID", "298")
-MATOMO_TOKEN = os.getenv("MATOMO_TOKEN", "ae94bc07624d7657a95d51a53a025d5f")
+MATOMO_URL = get_config("MATOMO_URL", "https://webanalytics.ms.gov.br/")
+MATOMO_SITE_ID = get_config("MATOMO_SITE_ID", "298")
+MATOMO_TOKEN = get_config("MATOMO_TOKEN", "")  # Protegido!
 
 # Parâmetros padrão
 DEFAULT_PERIOD = "month"

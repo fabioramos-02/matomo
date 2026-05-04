@@ -36,3 +36,20 @@ streamlit run app.py
 * `api/matomo_client.py`: Cliente de comunicação com a API do Matomo via `requests`.
 * `utils/data_processor.py`: Lógica de limpeza de dados e identificação do padrão de URL das "Cartas de Serviço".
 * `docs/`: Pasta contendo a documentação do projeto e um levantamento de limitações técnicas para apresentação à gestão.
+
+## Como Publicar na Nuvem (Deploy)
+
+Como o Streamlit é um servidor Python em tempo real, plataformas *serverless* tradicionais voltadas para Javascript (como a **Vercel** ou Netlify) **não são recomendadas**. 
+
+As 3 melhores opções gratuitas para colocar seu dashboard no ar são:
+
+1. **Streamlit Community Cloud (Recomendado)**
+   * **Como funciona:** É a plataforma oficial. Você sobe este código para o seu GitHub, acessa [share.streamlit.io](https://share.streamlit.io/), faz login com o GitHub e manda ele ler o repositório.
+   * **Vantagem:** É 100% gratuito e feito sob medida para esse tipo de app.
+   * **Atenção:** Como seu `MATOMO_TOKEN` não deve ficar público no GitHub, você deve acessar as *Settings* do seu app no painel do Streamlit Cloud e colar o token na área de **Secrets** lá.
+
+2. **Render.com**
+   * **Como funciona:** Você cria um "Web Service", conecta seu GitHub e ele roda como um servidor real. O comando de start será `streamlit run app.py --server.port $PORT`.
+
+3. **Hugging Face Spaces**
+   * **Como funciona:** Permite criar *Spaces* gratuitos rodando Streamlit. Ótimo para dashboards de dados.

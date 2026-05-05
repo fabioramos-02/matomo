@@ -12,39 +12,7 @@ def _range_is_long(date_str, threshold_days=60):
     except Exception:
         return False
 
-def _render_tab4_ga4(df_events):
-    st.header("Eventos do App (Jornada)")
-    st.markdown("O GA4 não possui API de Transições como o Matomo. A análise de jornada usa **eventos rastreados** pelo app.")
-
-    if df_events is None or df_events.empty:
-        st.warning("Sem dados de eventos para este período.")
-        return
-
-    col_chart, col_table = st.columns([1.2, 1])
-    with col_chart:
-        st.subheader("Top Eventos por Volume")
-        fig = px.bar(
-            df_events.head(15),
-            x="Acessos", y="Evento", orientation="h",
-            color="Acessos", color_continuous_scale="Purples"
-        )
-        fig.update_layout(yaxis={"categoryorder": "total ascending"})
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col_table:
-        st.subheader("Tabela de Eventos")
-        df_show = df_events.head(20).copy()
-        df_show.insert(0, "#", df_show.index + 1)
-        st.dataframe(df_show[["#", "Evento", "Acessos"]], hide_index=True, use_container_width=True)
-
-    st.info("💡 Para análise de funil e sequência de telas, acesse diretamente o GA4 em Analytics > Exploração > Funil.")
-
-
 def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Portal (Matomo)", df_events=None):
-    if fonte == "MS Digital (GA4)":
-        _render_tab4_ga4(df_events)
-        return
-
     st.header("Fluxo de Navegação (Jornada)")
     st.markdown("O portal do governo atua muitas vezes como um **Hub**: o cidadão entra, pesquisa e é direcionado para o serviço real em outro sistema (Detran, Sefaz, etc).")
     

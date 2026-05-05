@@ -21,3 +21,7 @@ MATOMO_TOKEN = get_config("MATOMO_TOKEN", "")  # Protegido!
 # Parâmetros padrão
 DEFAULT_PERIOD = "month"
 DEFAULT_DATE = "today"
+
+# Google Analytics (MS Digital App)
+GOOGLE_CREDENTIALS_JSON = get_config("GOOGLE_CREDENTIALS_JSON", "")
+GOOGLE_PROPERTY_ID = get_config("GOOGLE_PROPERTY_ID", "")

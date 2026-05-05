@@ -43,8 +43,7 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
     
     with col_b:
         if not df_browsers.empty:
-            label_browsers = "Sistema Operacional" if fonte == "MS Digital (GA4)" else "Navegadores Mais Utilizados"
-            st.markdown(f"**{label_browsers}**")
+            st.markdown("**Navegadores Mais Utilizados**")
             # Usa paleta qualitativa vibrante (melhor para categorias independentes)
             fig_b = px.pie(df_browsers, values='Visitas', names='Navegador', hole=0.5, color_discrete_sequence=px.colors.qualitative.Pastel)
             fig_b.update_traces(textposition='inside', textinfo='percent')

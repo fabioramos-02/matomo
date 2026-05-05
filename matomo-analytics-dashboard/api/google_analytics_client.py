@@ -49,10 +49,20 @@ class GoogleAnalyticsAPI:
         return self._run_report(["searchTerm"], ["eventCount"], start_date, end_date)
 
     def get_geography(self, start_date: str, end_date: str):
-        return self._run_report(["city", "region"], ["activeUsers"], start_date, end_date)
+        """Tenta buscar dados geográficos em níveis decrescentes de complexidade."""
+        # 1. Tentativa Completa (Mapa de Pontos)
+        res = self._run_report(["city", "region", "country", "latitude", "longitude"], ["activeUsers"], start_date, end_date)
+        if res: return res
+        
+        # 2. Fallback Regional (Tabela Cidade/UF)
+        res = self._run_report(["city", "region", "country"], ["activeUsers"], start_date, end_date)
+        if res: return res
+        
+        # 3. Fallback Global (Apenas País)
+        return self._run_report(["country"], ["activeUsers"], start_date, end_date)
 
     def get_country_map(self, start_date: str, end_date: str):
-        return self._run_report(["country", "countryId"], ["activeUsers"], start_date, end_date)
+        return self._run_report(["country"], ["activeUsers"], start_date, end_date)
 
     def get_devices(self, start_date: str, end_date: str):
         return self._run_report(["deviceCategory", "operatingSystem"], ["activeUsers"], start_date, end_date)

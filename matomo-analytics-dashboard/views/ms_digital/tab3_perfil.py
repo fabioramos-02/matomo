@@ -12,18 +12,25 @@ def render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, ms_geojson
         col_map_world, col_tab_world = st.columns([2, 1])
 
         with col_map_world:
+            import numpy as np
+            df_plot = df_country_map.copy()
+            # Escala Logarítmica para a cor (permite ver países com 1 acesso vs 80k)
+            df_plot["Usuários (Log)"] = np.log10(df_plot["Usuários"] + 1)
+            
             fig_world = px.choropleth(
-                df_country_map,
-                locations="ISO",
-                color="Usuários",
+                df_plot,
+                locations="País",
+                locationmode="country names",
+                color="Usuários (Log)",
                 hover_name="País",
-                color_continuous_scale="Blues",
+                hover_data={"Usuários": True, "Usuários (Log)": False},
+                color_continuous_scale="Viridis", # Viridis tem melhor contraste para log
                 projection="natural earth",
             )
             fig_world.update_layout(
                 margin=dict(t=0, b=0, l=0, r=0),
-                coloraxis_colorbar=dict(title="Usuários"),
-                geo=dict(showframe=False, showcoastlines=True),
+                coloraxis_showscale=False, # Escala log não faz sentido visual na legenda
+                geo=dict(showframe=False, showcoastlines=True, lakecolor="white"),
             )
             st.plotly_chart(fig_world, use_container_width=True)
 
@@ -36,38 +43,44 @@ def render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, ms_geojson
 
     st.markdown("---")
 
-    # ── Cidades por estado ────────────────────────────────────────────────────
-    st.subheader("🗺️ Distribuição por Cidade")
+    # ── Cidades e Coordenadas (Global) ─────────────────────────────────────────
+    st.subheader("🗺️ Distribuição Geográfica (Cidades)")
+    st.caption("Visualização baseada na localização real dos usuários. O mapa cobre todo o território nacional e internacional.")
+    
     if not df_cities.empty:
         col_map, col_tab = st.columns([2, 1])
 
         with col_map:
-            try:
-                df_map = df_cities[df_cities["Cidade"] != "Unknown"].copy()
-                fig_map = px.choropleth_mapbox(
-                    df_map, geojson=ms_geojson, locations="Cidade", featureidkey="properties.name",
-                    color="Visitas", color_continuous_scale="Blues", mapbox_style="carto-positron",
-                    zoom=5, center={"lat": -20.44278, "lon": -54.64639}, opacity=0.7,
+            # Filtro para evitar pontos inválidos
+            df_map = df_cities[df_cities["lat"].notna() & df_cities["lon"].notna()].copy()
+            
+            if not df_map.empty:
+                fig_map = px.scatter_mapbox(
+                    df_map,
+                    lat="lat",
+                    lon="lon",
+                    size="Visitas",
+                    color="Visitas",
+                    hover_name="Cidade",
+                    hover_data={"UF": True, "Visitas": True, "lat": False, "lon": False},
+                    color_continuous_scale="Blues",
+                    size_max=15,
+                    zoom=3.5,
+                    center={"lat": -15.7801, "lon": -47.9292}, # Centro do Brasil
+                    mapbox_style="carto-positron",
                 )
                 fig_map.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
                 st.plotly_chart(fig_map, use_container_width=True)
-            except Exception:
-                fig_bar = px.bar(
-                    df_cities.head(15), x="Cidade", y="Visitas",
-                    color="Visitas", color_continuous_scale="Blues",
-                )
-                st.plotly_chart(fig_bar, use_container_width=True)
+            else:
+                st.info("Coordenadas geográficas não disponíveis para exibir no mapa.")
 
         with col_tab:
             df_show = df_cities.copy()
             df_show.insert(0, "#", df_show.index + 1)
-            cols = ["#", "Cidade"]
-            if "UF" in df_show.columns:
-                cols.append("UF")
-            cols.append("Visitas")
+            cols = ["#", "Cidade", "UF", "Visitas"]
             st.dataframe(df_show[cols], hide_index=True, use_container_width=True, height=400)
     else:
-        st.info("Sem dados de cidade disponíveis.")
+        st.info("Sem dados geográficos detalhados.")
 
     st.markdown("---")
 

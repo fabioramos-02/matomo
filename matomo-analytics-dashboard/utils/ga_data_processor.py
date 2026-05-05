@@ -53,11 +53,56 @@ def process_ga_cities(data: list) -> pd.DataFrame:
     if not data:
         return pd.DataFrame()
     df = pd.DataFrame(data)
-    df = df.rename(columns={"city": "Cidade", "activeUsers": "Visitas", "region": "Região"})
+    
+    # Renomeação dinâmica (só renomeia o que existe)
+    rename_map = {
+        "city": "Cidade", 
+        "region": "Região", 
+        "country": "País",
+        "latitude": "lat", 
+        "longitude": "lon",
+        "activeUsers": "Visitas"
+    }
+    # Filtra o map para colunas presentes
+    actual_rename = {k: v for k, v in rename_map.items() if k in df.columns}
+    df = df.rename(columns=actual_rename)
+    
     df["Visitas"] = pd.to_numeric(df["Visitas"], errors="coerce").fillna(0).astype(int)
-    df = df[df["Cidade"].notna() & (df["Cidade"] != "(not set)")]
-    df["UF"] = df["Região"].map(_REGION_TO_UF).fillna("") if "Região" in df.columns else ""
-    df = df.groupby(["Cidade", "UF"], as_index=False)["Visitas"].sum()
+    
+    # Processa coordenadas se existirem
+    if "lat" in df.columns:
+        df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
+    if "lon" in df.columns:
+        df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
+    
+    # Garantia de colunas mínimas para evitar quebra no agrupamento/UI
+    if "Cidade" not in df.columns:
+        df["Cidade"] = "Global (País)"
+    if "UF" not in df.columns:
+        df["UF"] = df.get("País", "Desconhecido")
+    
+    # Limpeza e Normalização
+    df["Cidade"] = df["Cidade"].replace({"(not set)": "Desconhecido", "": "Desconhecido"}).fillna("Desconhecido")
+    
+    # Mapeamento de UF (Apenas para Brasil)
+    def map_uf(row):
+        pais = row.get("País", "Brazil")
+        regiao = row.get("Região", "")
+        if pais != "Brazil" and pais != "Desconhecido":
+            return pais
+        return _REGION_TO_UF.get(regiao, "Outros/Desconhecido")
+    
+    if "Região" in df.columns or "País" in df.columns:
+        df["UF"] = df.apply(map_uf, axis=1)
+    
+    # Agrupamento dinâmico
+    agg_dict = {"Visitas": "sum"}
+    if "lat" in df.columns: agg_dict["lat"] = "mean"
+    if "lon" in df.columns: agg_dict["lon"] = "mean"
+    
+    group_cols = ["Cidade", "UF"]
+    df = df.groupby(group_cols, as_index=False).agg(agg_dict)
+    
     return df.sort_values("Visitas", ascending=False).reset_index(drop=True)
 
 
@@ -65,9 +110,11 @@ def process_ga_country_map(data: list) -> pd.DataFrame:
     if not data:
         return pd.DataFrame()
     df = pd.DataFrame(data)
-    df = df.rename(columns={"country": "País", "countryId": "ISO", "activeUsers": "Usuários"})
+    df = df.rename(columns={"country": "País", "activeUsers": "Usuários"})
     df["Usuários"] = pd.to_numeric(df["Usuários"], errors="coerce").fillna(0).astype(int)
     df = df[df["País"].notna() & (df["País"] != "(not set)")]
+    # Agrupa por país caso venham duplicatas por alguma razão
+    df = df.groupby("País", as_index=False)["Usuários"].sum()
     return df.sort_values("Usuários", ascending=False).reset_index(drop=True)
 
 

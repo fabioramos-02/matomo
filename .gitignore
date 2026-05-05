@@ -1,2 +1,14 @@
 ms-digital-495412-e73bea41b2e6.json
 /.claude
+/node_modules
+package-lock.json
+package.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Editor temp files
+*.tmp.*
+*.tmp

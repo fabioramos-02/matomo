@@ -12,7 +12,6 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)"):
         if not df_pages.empty:
             df_show = df_pages.head(20).copy()
             df_show.insert(0, '#', df_show.index + 1)
-            import plotly.express as px
             fig = px.bar(df_pages.head(15), x='Visitas', y='URL', orientation='h',
                          color='Visitas', color_continuous_scale='Blues')
             fig.update_layout(yaxis={'categoryorder': 'total ascending'})

@@ -56,3 +56,13 @@ class GoogleAnalyticsAPI:
 
     def get_top_events(self, start_date: str, end_date: str):
         return self._run_report(["eventName"], ["eventCount"], start_date, end_date)
+
+    def get_overview(self, start_date: str, end_date: str):
+        return self._run_report(["newVsReturning"], ["activeUsers", "sessions", "screenPageViews"], start_date, end_date)
+
+    def get_platform(self, start_date: str, end_date: str):
+        return self._run_report(["platform", "operatingSystem"], ["activeUsers", "sessions"], start_date, end_date)
+
+    def get_funnel_events(self, start_date: str, end_date: str):
+        """Todos os eventos (sem filtro) para visualização de funil."""
+        return self._run_report(["eventName"], ["eventCount", "totalUsers"], start_date, end_date)

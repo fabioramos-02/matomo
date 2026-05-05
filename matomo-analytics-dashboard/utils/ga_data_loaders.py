@@ -6,6 +6,9 @@ from utils.ga_data_processor import (
     process_ga_devices,
     process_ga_visit_time,
     process_ga_events,
+    process_ga_overview,
+    process_ga_platform,
+    process_ga_funnel,
 )
 
 
@@ -43,3 +46,21 @@ def load_ga_visit_time(_ga_api, start_date, end_date, property_id):
 def load_ga_events(_ga_api, start_date, end_date, property_id):
     data = _ga_api.get_top_events(start_date, end_date)
     return process_ga_events(data)
+
+
+@st.cache_data(ttl=3600)
+def load_ga_overview(_ga_api, start_date, end_date, property_id):
+    data = _ga_api.get_overview(start_date, end_date)
+    return process_ga_overview(data)
+
+
+@st.cache_data(ttl=3600)
+def load_ga_platform(_ga_api, start_date, end_date, property_id):
+    data = _ga_api.get_platform(start_date, end_date)
+    return process_ga_platform(data)
+
+
+@st.cache_data(ttl=3600)
+def load_ga_funnel(_ga_api, start_date, end_date, property_id):
+    data = _ga_api.get_funnel_events(start_date, end_date)
+    return process_ga_funnel(data)

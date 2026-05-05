@@ -32,12 +32,15 @@ class MatomoAPI:
         query_string = urllib.parse.urlencode(params)
         return f"{self.base_url}index.php?{query_string}"
 
-    def get_data(self, method, period=None, date=None, extra_params=None, site_id=None):
+    def get_data(self, method, period=None, date=None, extra_params=None, site_id=None, timeout=90):
         url = self._build_url(method, period, date, extra_params, site_id)
         try:
-            response = requests.get(url, timeout=90)
+            response = requests.get(url, timeout=timeout)
             response.raise_for_status()
             return response.json()
+        except requests.exceptions.Timeout:
+            print(f"Timeout na requisição para {method} (limite: {timeout}s)")
+            return None
         except requests.exceptions.RequestException as e:
             print(f"Erro na requisição para {method}: {e}")
             return []
@@ -52,7 +55,13 @@ class MatomoAPI:
         return self.get_data('Actions.getSiteSearchKeywords', period, date, {'filter_limit': limit}, site_id)
 
     def get_transitions(self, period, date, page_url, site_id=None):
-        return self.get_data('Transitions.getTransitionsForPageUrl', period, date, {'pageUrl': page_url}, site_id)
+        return self.get_data(
+            'Transitions.getTransitionsForPageUrl',
+            period, date,
+            {'pageUrl': page_url, 'limitBeforeGrouping': 20},
+            site_id,
+            timeout=180
+        )
 
     def get_city(self, period, date, site_id=None, limit=100):
         return self.get_data('UserCountry.getCity', period, date, {'filter_limit': limit}, site_id)

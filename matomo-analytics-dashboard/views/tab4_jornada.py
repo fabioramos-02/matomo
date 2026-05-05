@@ -1,7 +1,16 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from datetime import datetime
 from utils.data_loaders import load_transitions_data, load_outlinks_data, load_entry_pages_data
+
+def _range_is_long(date_str, threshold_days=60):
+    try:
+        parts = date_str.split(",")
+        delta = datetime.strptime(parts[1], "%Y-%m-%d") - datetime.strptime(parts[0], "%Y-%m-%d")
+        return delta.days > threshold_days
+    except Exception:
+        return False
 
 def render_tab4_jornada(df_pages, api, period, date, selected_site_id):
     st.header("Fluxo de Navegação (Jornada)")
@@ -52,52 +61,61 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id):
     # 3. MACRO-FLUXO DA HOME
     st.subheader("🛣️ Padrão Comportamental: A partir da Página Principal")
     st.markdown("O que o cidadão acessa logo após entrar na Home (`/index`)?")
-    
+
     url_home = "https://www.ms.gov.br/"
-    
-    with st.spinner("Analisando macro-fluxo... (Isso pode demorar dependendo do período selecionado)"):
-        transitions = load_transitions_data(api, period, date, url_home, selected_site_id)
-        
-        if transitions and transitions.get('followingPages'):
-            df_trans = pd.DataFrame(transitions['followingPages'])
-            
-            # Limpeza de dados de transição
-            df_trans = df_trans.rename(columns={'label': 'Página de Destino', 'referrals': 'Acessos'})
-            df_trans['Página de Destino'] = df_trans['Página de Destino'].str.replace('ms.gov.br', '', regex=False)
-            
-            # Classificação da Jornada
-            def classificar_jornada(url):
-                if not url or url == '/': return 'Recargas/Outros'
-                parts = [p for p in url.split('/') if p]
-                if len(parts) == 0: return 'Recargas/Outros'
-                
-                first = parts[0].lower()
-                if first in ['workspace', 'login']: return 'Acesso a Sistemas (Login/Workspace)'
-                if first in ['noticias']: return 'Notícias'
-                if len(parts) == 1: return 'Exploração por Categoria/Órgão'
-                if len(parts) >= 2: return 'Acesso Direto ao Serviço'
-                
-                return 'Outros'
-                
-            df_trans['Tipo de Jornada'] = df_trans['Página de Destino'].apply(classificar_jornada)
-            
-            col_chart, col_table = st.columns([1, 1.2])
-            
-            with col_chart:
-                df_group = df_trans.groupby('Tipo de Jornada')['Acessos'].sum().reset_index()
-                fig_macro = px.pie(df_group, values='Acessos', names='Tipo de Jornada', hole=0.5, color_discrete_sequence=px.colors.qualitative.Prism)
-                fig_macro.update_traces(textposition='inside', textinfo='percent')
-                fig_macro.update_layout(legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="center", x=0.5))
-                st.plotly_chart(fig_macro, use_container_width=True)
-                
-            with col_table:
-                st.write("**Top 10 Destinos Específicos a partir da Home:**")
-                # Filtra lixo visual
-                df_show = df_trans[~df_trans['Tipo de Jornada'].isin(['Recargas/Outros'])].head(10)
-                st.dataframe(
-                    df_show[['Página de Destino', 'Tipo de Jornada', 'Acessos']],
-                    hide_index=True,
-                    use_container_width=True
-                )
-        else:
-            st.warning("Não foi possível carregar os destinos da Página Principal para este período (Timeout ou Sem Dados).")
+
+    # Períodos pesados exigem confirmação do usuário para evitar timeout silencioso
+    is_heavy_period = period in ("year",) or (period == "range" and "," in date and _range_is_long(date))
+
+    if is_heavy_period:
+        st.info("⚠️ Período longo selecionado. A análise de transições pode demorar até 3 minutos.")
+        carregar = st.button("Carregar análise de macro-fluxo (pode ser lento)", key="btn_transitions")
+    else:
+        carregar = True
+
+    def _render_transitions(transitions):
+        if transitions is None:
+            st.error("Timeout ao consultar a API de transições (>180s). Tente um período menor como 'Mês' ou 'Semana'.")
+            return
+        if not transitions or not transitions.get('followingPages'):
+            st.warning("Sem dados de transição para este período.")
+            return
+
+        df_trans = pd.DataFrame(transitions['followingPages'])
+        df_trans = df_trans.rename(columns={'label': 'Página de Destino', 'referrals': 'Acessos'})
+        df_trans['Página de Destino'] = df_trans['Página de Destino'].str.replace('ms.gov.br', '', regex=False)
+
+        def classificar_jornada(url):
+            if not url or url == '/': return 'Recargas/Outros'
+            parts = [p for p in url.split('/') if p]
+            if len(parts) == 0: return 'Recargas/Outros'
+            first = parts[0].lower()
+            if first in ['workspace', 'login']: return 'Acesso a Sistemas (Login/Workspace)'
+            if first in ['noticias']: return 'Notícias'
+            if len(parts) == 1: return 'Exploração por Categoria/Órgão'
+            if len(parts) >= 2: return 'Acesso Direto ao Serviço'
+            return 'Outros'
+
+        df_trans['Tipo de Jornada'] = df_trans['Página de Destino'].apply(classificar_jornada)
+
+        col_chart, col_table = st.columns([1, 1.2])
+        with col_chart:
+            df_group = df_trans.groupby('Tipo de Jornada')['Acessos'].sum().reset_index()
+            fig_macro = px.pie(df_group, values='Acessos', names='Tipo de Jornada', hole=0.5,
+                               color_discrete_sequence=px.colors.qualitative.Prism)
+            fig_macro.update_traces(textposition='inside', textinfo='percent')
+            fig_macro.update_layout(legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="center", x=0.5))
+            st.plotly_chart(fig_macro, use_container_width=True)
+        with col_table:
+            st.write("**Top 10 Destinos Específicos a partir da Home:**")
+            df_show = df_trans[~df_trans['Tipo de Jornada'].isin(['Recargas/Outros'])].head(10)
+            st.dataframe(
+                df_show[['Página de Destino', 'Tipo de Jornada', 'Acessos']],
+                hide_index=True,
+                use_container_width=True
+            )
+
+    if carregar:
+        with st.spinner("Analisando macro-fluxo... (até 3 min para períodos longos)"):
+            transitions = load_transitions_data(api, period, date, url_home, selected_site_id)
+        _render_transitions(transitions)

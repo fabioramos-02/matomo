@@ -24,6 +24,8 @@ def load_search_data(_api, p, d, sid):
 @st.cache_data(ttl=3600)
 def load_transitions_data(_api, p, d, url, sid):
     data = _api.get_transitions(p, d, url, site_id=sid)
+    if data is None:
+        return None  # Timeout — sinaliza diferente de dados vazios
     return process_transitions(data)
 
 @st.cache_data(ttl=3600)

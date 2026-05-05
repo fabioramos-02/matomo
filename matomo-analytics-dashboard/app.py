@@ -29,6 +29,8 @@ from utils.ga_data_loaders import (
     load_ga_funnel,
     load_ga_services,
     load_ga_services_trend,
+    load_ga_external_links,
+    load_ga_country_map,
 )
 
 # Views Portal (Matomo)
@@ -103,7 +105,7 @@ if fonte == "Portal (Matomo)":
     selected_site_name = st.sidebar.selectbox("Site", list(sites_map.keys()), index=default_idx)
     selected_site_id = sites_map[selected_site_name]
 else:
-    st.sidebar.info(f"Propriedade GA4: `{GOOGLE_PROPERTY_ID}`")
+    pass
 
 st.sidebar.markdown("---")
 
@@ -192,6 +194,8 @@ else:
         df_services = load_ga_services(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID)
         top5 = df_services["Serviço"].head(5).tolist() if not df_services.empty else []
         df_services_trend = load_ga_services_trend(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID, tuple(top5))
+        df_external_links = load_ga_external_links(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID)
+        df_country_map = load_ga_country_map(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID)
         ms_geojson = load_ms_geojson()
 
     if ga_overview["total_users"] == 0 and df_screens.empty:
@@ -207,8 +211,8 @@ else:
     with tab1:
         render_ga_tab1_overview(ga_overview, df_platform)
     with tab2:
-        render_ga_tab2_funcionalidades(df_services, df_services_trend, df_events)
+        render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_links)
     with tab3:
-        render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, df_platform, ms_geojson)
+        render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, ms_geojson, df_country_map)
     with tab4:
         render_ga_tab4_jornada(df_funnel)

@@ -20,15 +20,38 @@ def process_ga_search(data: list) -> pd.DataFrame:
     return df[["Palavra-chave", "Buscas"]].sort_values("Buscas", ascending=False).head(20).reset_index(drop=True)
 
 
+_REGION_TO_UF = {
+    "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM",
+    "Bahia": "BA", "Ceará": "CE", "Distrito Federal": "DF",
+    "Espírito Santo": "ES", "Goiás": "GO", "Maranhão": "MA",
+    "Mato Grosso": "MT", "Mato Grosso do Sul": "MS", "Minas Gerais": "MG",
+    "Pará": "PA", "Paraíba": "PB", "Paraná": "PR", "Pernambuco": "PE",
+    "Piauí": "PI", "Rio de Janeiro": "RJ", "Rio Grande do Norte": "RN",
+    "Rio Grande do Sul": "RS", "Rondônia": "RO", "Roraima": "RR",
+    "Santa Catarina": "SC", "São Paulo": "SP", "Sergipe": "SE", "Tocantins": "TO",
+}
+
+
 def process_ga_cities(data: list) -> pd.DataFrame:
     if not data:
         return pd.DataFrame()
     df = pd.DataFrame(data)
-    df = df.rename(columns={"city": "Cidade", "activeUsers": "Visitas"})
+    df = df.rename(columns={"city": "Cidade", "activeUsers": "Visitas", "region": "Região"})
     df["Visitas"] = pd.to_numeric(df["Visitas"], errors="coerce").fillna(0).astype(int)
     df = df[df["Cidade"].notna() & (df["Cidade"] != "(not set)")]
-    df = df.groupby("Cidade", as_index=False)["Visitas"].sum()
+    df["UF"] = df["Região"].map(_REGION_TO_UF).fillna("") if "Região" in df.columns else ""
+    df = df.groupby(["Cidade", "UF"], as_index=False)["Visitas"].sum()
     return df.sort_values("Visitas", ascending=False).reset_index(drop=True)
+
+
+def process_ga_country_map(data: list) -> pd.DataFrame:
+    if not data:
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    df = df.rename(columns={"country": "País", "countryId": "ISO", "activeUsers": "Usuários"})
+    df["Usuários"] = pd.to_numeric(df["Usuários"], errors="coerce").fillna(0).astype(int)
+    df = df[df["País"].notna() & (df["País"] != "(not set)")]
+    return df.sort_values("Usuários", ascending=False).reset_index(drop=True)
 
 
 def process_ga_devices(data: list) -> pd.DataFrame:
@@ -114,14 +137,22 @@ def process_ga_funnel(data: list) -> pd.DataFrame:
     return pd.concat([sistema, customizados], ignore_index=True)
 
 
+_SERVICOS_EXCLUIR = {"(not set)", "", "Educação", "Segurança", "Trânsito"}
+_EVENTO_SERVICO = "use_feature"
+
+
 def process_ga_services(data: list) -> pd.DataFrame:
-    """Serviços por screenPageTitle + eventCount. Remove entradas sem nome legível."""
+    """Segmento 'Funcionalidade' do GA4: use_feature por unifiedScreenName.
+    Exclusoes do payload: (not set), Educacao, Seguranca, Transito."""
     if not data:
         return pd.DataFrame()
     df = pd.DataFrame(data)
     df = df.rename(columns={"screenPageTitle": "Serviço", "eventCount": "Acessos"})
     df["Acessos"] = pd.to_numeric(df["Acessos"], errors="coerce").fillna(0).astype(int)
-    df = df[df["Serviço"].notna() & (df["Serviço"] != "(not set)") & (df["Serviço"] != "")]
+    if "eventName" in df.columns:
+        df = df[df["eventName"] == _EVENTO_SERVICO]
+    df = df[df["Serviço"].notna() & ~df["Serviço"].isin(_SERVICOS_EXCLUIR)]
+    df = df.groupby("Serviço", as_index=False)["Acessos"].sum()
     df = df.sort_values("Acessos", ascending=False).reset_index(drop=True)
     total = df["Acessos"].sum()
     df["%"] = (df["Acessos"] / total * 100).round(1) if total > 0 else 0.0
@@ -129,16 +160,33 @@ def process_ga_services(data: list) -> pd.DataFrame:
 
 
 def process_ga_services_trend(data: list, top_services: list) -> pd.DataFrame:
-    """Tendência temporal dos top serviços. Retorna DataFrame pivotado."""
+    """Tendência temporal dos top serviços. Filtra por use_feature e exclusoes do segmento."""
     if not data:
         return pd.DataFrame()
     df = pd.DataFrame(data)
     df = df.rename(columns={"screenPageTitle": "Serviço", "date": "Data", "eventCount": "Acessos"})
     df["Acessos"] = pd.to_numeric(df["Acessos"], errors="coerce").fillna(0).astype(int)
+    if "eventName" in df.columns:
+        df = df[df["eventName"] == _EVENTO_SERVICO]
     df = df[df["Serviço"].isin(top_services)]
     df["Data"] = pd.to_datetime(df["Data"], format="%Y%m%d", errors="coerce")
     df = df.dropna(subset=["Data"]).sort_values("Data")
     return df
+
+
+_LINKS_EXCLUIR = {"(not set)", "", "unknown"}
+
+
+def process_ga_external_links(data: list) -> pd.DataFrame:
+    """Links externos: click event por linkText. Exclui unknown/(not set)/empty (payload GA4)."""
+    if not data:
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    df = df.rename(columns={"linkText": "Destino", "eventCount": "Cliques", "activeUsers": "Usuários"})
+    df["Cliques"] = pd.to_numeric(df["Cliques"], errors="coerce").fillna(0).astype(int)
+    df["Usuários"] = pd.to_numeric(df["Usuários"], errors="coerce").fillna(0).astype(int)
+    df = df[df["Destino"].notna() & ~df["Destino"].isin(_LINKS_EXCLUIR)]
+    return df.sort_values("Cliques", ascending=False).reset_index(drop=True)
 
 
 def process_ga_events(data: list) -> pd.DataFrame:

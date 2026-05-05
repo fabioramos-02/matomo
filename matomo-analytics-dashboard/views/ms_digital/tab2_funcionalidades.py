@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.express as px
 
-def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_events):
+def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_links=None):
     st.header("Serviços Mais Acessados — MS Digital App")
     st.markdown("Quais funcionalidades os cidadãos mais utilizam. Baseado em acessos de tela (`screen_view`).")
 
@@ -84,29 +84,30 @@ def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_events):
 
     st.markdown("---")
 
-    # ── Eventos Customizados ──────────────────────────────────────────────────
-    st.subheader("⚡ Eventos Customizados")
-    st.caption("Ações disparadas pela interação do usuário (além de acessos de tela).")
+    # ── Links Externos (Redirecionamentos) ────────────────────────────────────
+    st.subheader("🔗 Links Externos — Para onde o usuário é redirecionado")
+    st.caption("Destinos clicados dentro do app (eventos `click` outbound).")
 
-    if not df_events.empty:
-        col_ev_chart, col_ev_table = st.columns([1.3, 1])
+    if df_external_links is not None and not df_external_links.empty:
+        col_ext_chart, col_ext_table = st.columns([1.3, 1])
 
-        with col_ev_chart:
-            fig_ev = px.bar(
-                df_events.head(15),
-                x="Acessos",
-                y="Evento",
+        with col_ext_chart:
+            fig_ext = px.bar(
+                df_external_links.head(15),
+                x="Cliques",
+                y="Destino",
                 orientation="h",
-                color="Acessos",
-                color_continuous_scale="Oranges",
+                color="Cliques",
+                color_continuous_scale="Greens",
             )
-            fig_ev.update_layout(yaxis={"categoryorder": "total ascending"}, coloraxis_showscale=False)
-            fig_ev.update_yaxes(tickfont=dict(size=11))
-            st.plotly_chart(fig_ev, use_container_width=True)
+            fig_ext.update_layout(yaxis={"categoryorder": "total ascending"}, coloraxis_showscale=False)
+            fig_ext.update_yaxes(tickfont=dict(size=11))
+            st.plotly_chart(fig_ext, use_container_width=True)
 
-        with col_ev_table:
-            df_ev_show = df_events.head(20).copy()
-            df_ev_show.insert(0, "#", df_ev_show.index + 1)
-            st.dataframe(df_ev_show[["#", "Evento", "Acessos"]], hide_index=True, use_container_width=True)
+        with col_ext_table:
+            df_ext_show = df_external_links.head(20).copy()
+            df_ext_show.insert(0, "#", df_ext_show.index + 1)
+            st.dataframe(df_ext_show[["#", "Destino", "Cliques", "Usuários"]], hide_index=True, use_container_width=True)
     else:
-        st.info("Sem eventos customizados para o período.")
+        st.info("Sem dados de links externos para o período.")
+

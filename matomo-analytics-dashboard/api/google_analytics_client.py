@@ -51,6 +51,9 @@ class GoogleAnalyticsAPI:
     def get_geography(self, start_date: str, end_date: str):
         return self._run_report(["city", "region"], ["activeUsers"], start_date, end_date)
 
+    def get_country_map(self, start_date: str, end_date: str):
+        return self._run_report(["country", "countryId"], ["activeUsers"], start_date, end_date)
+
     def get_devices(self, start_date: str, end_date: str):
         return self._run_report(["deviceCategory", "operatingSystem"], ["activeUsers"], start_date, end_date)
 
@@ -70,20 +73,56 @@ class GoogleAnalyticsAPI:
         """Todos os eventos (sem filtro) para visualização de funil."""
         return self._run_report(["eventName"], ["eventCount", "totalUsers"], start_date, end_date)
 
+    # Dimensões candidatas para unified_screen_name (ordem de preferência baseada no payload GA4)
+    _SCREEN_DIM_CANDIDATES = [
+        "unifiedScreenName",
+        "customEvent:unified_screen_name",
+        "screenPageTitle",
+        "screenName",
+    ]
+    _EXCLUIR_TELA = {"(not set)", "", "Educação", "Segurança", "Trânsito"}
+
+    def _get_screen_dim(self, start_date: str, end_date: str) -> tuple[str, list]:
+        """Retorna (dim_name, rows) para a primeira dim que tem dados de use_feature."""
+        for dim in self._SCREEN_DIM_CANDIDATES:
+            rows = self._run_report([dim, "eventName"], ["eventCount"], start_date, end_date)
+            # Só aceita se tiver rows de use_feature com tela não-excluída
+            for r in rows:
+                if r.get("eventName") == "use_feature" and r.get(dim, "(not set)") not in self._EXCLUIR_TELA:
+                    return dim, rows
+        return "screenPageTitle", []
+
     def get_services(self, start_date: str, end_date: str):
-        """Serviços acessados: screenPageTitle + eventCount filtrado por screen_view."""
+        """Funcionalidades internas: use_feature × melhor dimensão de tela."""
+        dim, rows = self._get_screen_dim(start_date, end_date)
+        for r in rows:
+            if dim != "screenPageTitle":
+                r["screenPageTitle"] = r.pop(dim, "(not set)")
+        return rows
+
+    def get_services_trend(self, start_date: str, end_date: str):
+        """Tendência temporal: use_feature por melhor dimensão + date."""
+        dim, _ = self._get_screen_dim(start_date, end_date)
+        rows = self._run_report([dim, "date", "eventName"], ["eventCount"], start_date, end_date)
+        for r in rows:
+            if dim != "screenPageTitle":
+                r["screenPageTitle"] = r.pop(dim, "(not set)")
+        return rows
+
+    def get_external_links(self, start_date: str, end_date: str):
+        """Links externos clicados: linkText + eventCount + activeUsers (evento click outbound)."""
         try:
             request = RunReportRequest(
                 property=self.property,
-                dimensions=[Dimension(name="screenPageTitle")],
-                metrics=[Metric(name="eventCount")],
+                dimensions=[Dimension(name="linkText")],
+                metrics=[Metric(name="eventCount"), Metric(name="activeUsers")],
                 date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
                 dimension_filter=FilterExpression(
                     filter=Filter(
                         field_name="eventName",
                         string_filter=Filter.StringFilter(
                             match_type=Filter.StringFilter.MatchType.EXACT,
-                            value="screen_view",
+                            value="click",
                         ),
                     )
                 ),
@@ -94,42 +133,11 @@ class GoogleAnalyticsAPI:
             rows = []
             for row in response.rows:
                 rows.append({
-                    "screenPageTitle": row.dimension_values[0].value,
+                    "linkText": row.dimension_values[0].value,
                     "eventCount": row.metric_values[0].value,
+                    "activeUsers": row.metric_values[1].value,
                 })
             return rows
         except Exception as e:
-            print(f"Erro GA4 get_services: {e}")
-            return []
-
-    def get_services_trend(self, start_date: str, end_date: str):
-        """Tendência temporal de serviços: screenPageTitle + date + eventCount."""
-        try:
-            request = RunReportRequest(
-                property=self.property,
-                dimensions=[Dimension(name="screenPageTitle"), Dimension(name="date")],
-                metrics=[Metric(name="eventCount")],
-                date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
-                dimension_filter=FilterExpression(
-                    filter=Filter(
-                        field_name="eventName",
-                        string_filter=Filter.StringFilter(
-                            match_type=Filter.StringFilter.MatchType.EXACT,
-                            value="screen_view",
-                        ),
-                    )
-                ),
-                limit=500,
-            )
-            response = self.client.run_report(request)
-            rows = []
-            for row in response.rows:
-                rows.append({
-                    "screenPageTitle": row.dimension_values[0].value,
-                    "date": row.dimension_values[1].value,
-                    "eventCount": row.metric_values[0].value,
-                })
-            return rows
-        except Exception as e:
-            print(f"Erro GA4 get_services_trend: {e}")
+            print(f"Erro GA4 get_external_links: {e}")
             return []

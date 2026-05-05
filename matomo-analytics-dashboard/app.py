@@ -28,17 +28,17 @@ from utils.ga_data_loaders import (
     load_ga_funnel,
 )
 
-# Views Matomo
-from views.tab1_perfil import render_tab1_perfil
-from views.tab2_busca import render_tab2_busca
-from views.tab3_servicos import render_tab3_servicos
-from views.tab4_jornada import render_tab4_jornada
+# Views Portal (Matomo)
+from views.portal.tab1_perfil import render_tab1_perfil
+from views.portal.tab2_busca import render_tab2_busca
+from views.portal.tab3_servicos import render_tab3_servicos
+from views.portal.tab4_jornada import render_tab4_jornada
 
-# Views GA4
-from views.ga_tab1_overview import render_ga_tab1_overview
-from views.ga_tab2_funcionalidades import render_ga_tab2_funcionalidades
-from views.ga_tab3_perfil import render_ga_tab3_perfil
-from views.ga_tab4_jornada import render_ga_tab4_jornada
+# Views MS Digital (GA4)
+from views.ms_digital.tab1_overview import render_ga_tab1_overview
+from views.ms_digital.tab2_funcionalidades import render_ga_tab2_funcionalidades
+from views.ms_digital.tab3_perfil import render_ga_tab3_perfil
+from views.ms_digital.tab4_jornada import render_ga_tab4_jornada
 
 st.set_page_config(page_title="Analytics Dashboard", page_icon="📊", layout="wide")
 

@@ -21,6 +21,7 @@ def process_ga_search(data: list) -> pd.DataFrame:
 
 
 _REGION_TO_UF = {
+    # PT com acento
     "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM",
     "Bahia": "BA", "Ceará": "CE", "Distrito Federal": "DF",
     "Espírito Santo": "ES", "Goiás": "GO", "Maranhão": "MA",
@@ -29,6 +30,22 @@ _REGION_TO_UF = {
     "Piauí": "PI", "Rio de Janeiro": "RJ", "Rio Grande do Norte": "RN",
     "Rio Grande do Sul": "RS", "Rondônia": "RO", "Roraima": "RR",
     "Santa Catarina": "SC", "São Paulo": "SP", "Sergipe": "SE", "Tocantins": "TO",
+    # EN / sem acento (como GA4 retorna)
+    "Amapa": "AP", "Ceara": "CE", "Espirito Santo": "ES", "Goias": "GO",
+    "Maranhao": "MA", "Para": "PA", "Paraiba": "PB", "Parana": "PR",
+    "Piaui": "PI", "Rondonia": "RO", "Sao Paulo": "SP",
+    "State of Acre": "AC", "State of Alagoas": "AL", "State of Amapá": "AP",
+    "State of Amazonas": "AM", "State of Bahia": "BA", "State of Ceará": "CE",
+    "State of Espírito Santo": "ES", "State of Goiás": "GO",
+    "State of Maranhão": "MA", "State of Mato Grosso": "MT",
+    "State of Mato Grosso do Sul": "MS", "State of Minas Gerais": "MG",
+    "State of Pará": "PA", "State of Paraíba": "PB", "State of Paraná": "PR",
+    "State of Pernambuco": "PE", "State of Piauí": "PI",
+    "State of Rio de Janeiro": "RJ", "State of Rio Grande do Norte": "RN",
+    "State of Rio Grande do Sul": "RS", "State of Rondônia": "RO",
+    "State of Roraima": "RR", "State of Santa Catarina": "SC",
+    "State of São Paulo": "SP", "State of Sergipe": "SE",
+    "State of Tocantins": "TO", "Federal District": "DF",
 }
 
 

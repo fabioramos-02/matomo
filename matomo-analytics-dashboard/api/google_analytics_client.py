@@ -1,6 +1,7 @@
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
-    RunReportRequest, Dimension, Metric, DateRange
+    RunReportRequest, Dimension, Metric, DateRange,
+    FilterExpression, Filter, OrderBy,
 )
 from google.oauth2.credentials import Credentials
 
@@ -68,3 +69,67 @@ class GoogleAnalyticsAPI:
     def get_funnel_events(self, start_date: str, end_date: str):
         """Todos os eventos (sem filtro) para visualização de funil."""
         return self._run_report(["eventName"], ["eventCount", "totalUsers"], start_date, end_date)
+
+    def get_services(self, start_date: str, end_date: str):
+        """Serviços acessados: screenPageTitle + eventCount filtrado por screen_view."""
+        try:
+            request = RunReportRequest(
+                property=self.property,
+                dimensions=[Dimension(name="screenPageTitle")],
+                metrics=[Metric(name="eventCount")],
+                date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+                dimension_filter=FilterExpression(
+                    filter=Filter(
+                        field_name="eventName",
+                        string_filter=Filter.StringFilter(
+                            match_type=Filter.StringFilter.MatchType.EXACT,
+                            value="screen_view",
+                        ),
+                    )
+                ),
+                order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="eventCount"), desc=True)],
+                limit=50,
+            )
+            response = self.client.run_report(request)
+            rows = []
+            for row in response.rows:
+                rows.append({
+                    "screenPageTitle": row.dimension_values[0].value,
+                    "eventCount": row.metric_values[0].value,
+                })
+            return rows
+        except Exception as e:
+            print(f"Erro GA4 get_services: {e}")
+            return []
+
+    def get_services_trend(self, start_date: str, end_date: str):
+        """Tendência temporal de serviços: screenPageTitle + date + eventCount."""
+        try:
+            request = RunReportRequest(
+                property=self.property,
+                dimensions=[Dimension(name="screenPageTitle"), Dimension(name="date")],
+                metrics=[Metric(name="eventCount")],
+                date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+                dimension_filter=FilterExpression(
+                    filter=Filter(
+                        field_name="eventName",
+                        string_filter=Filter.StringFilter(
+                            match_type=Filter.StringFilter.MatchType.EXACT,
+                            value="screen_view",
+                        ),
+                    )
+                ),
+                limit=500,
+            )
+            response = self.client.run_report(request)
+            rows = []
+            for row in response.rows:
+                rows.append({
+                    "screenPageTitle": row.dimension_values[0].value,
+                    "date": row.dimension_values[1].value,
+                    "eventCount": row.metric_values[0].value,
+                })
+            return rows
+        except Exception as e:
+            print(f"Erro GA4 get_services_trend: {e}")
+            return []

@@ -27,6 +27,8 @@ from utils.ga_data_loaders import (
     load_ga_overview,
     load_ga_platform,
     load_ga_funnel,
+    load_ga_services,
+    load_ga_services_trend,
 )
 
 # Views Portal (Matomo)
@@ -187,6 +189,9 @@ else:
         df_time = load_ga_visit_time(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID)
         df_os, df_device_types = load_ga_devices(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID)
         df_funnel = load_ga_funnel(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID)
+        df_services = load_ga_services(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID)
+        top5 = df_services["Serviço"].head(5).tolist() if not df_services.empty else []
+        df_services_trend = load_ga_services_trend(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID, tuple(top5))
         ms_geojson = load_ms_geojson()
 
     if ga_overview["total_users"] == 0 and df_screens.empty:
@@ -202,7 +207,7 @@ else:
     with tab1:
         render_ga_tab1_overview(ga_overview, df_platform)
     with tab2:
-        render_ga_tab2_funcionalidades(df_screens, df_events)
+        render_ga_tab2_funcionalidades(df_services, df_services_trend, df_events)
     with tab3:
         render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, df_platform, ms_geojson)
     with tab4:

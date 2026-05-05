@@ -114,6 +114,33 @@ def process_ga_funnel(data: list) -> pd.DataFrame:
     return pd.concat([sistema, customizados], ignore_index=True)
 
 
+def process_ga_services(data: list) -> pd.DataFrame:
+    """Serviços por screenPageTitle + eventCount. Remove entradas sem nome legível."""
+    if not data:
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    df = df.rename(columns={"screenPageTitle": "Serviço", "eventCount": "Acessos"})
+    df["Acessos"] = pd.to_numeric(df["Acessos"], errors="coerce").fillna(0).astype(int)
+    df = df[df["Serviço"].notna() & (df["Serviço"] != "(not set)") & (df["Serviço"] != "")]
+    df = df.sort_values("Acessos", ascending=False).reset_index(drop=True)
+    total = df["Acessos"].sum()
+    df["%"] = (df["Acessos"] / total * 100).round(1) if total > 0 else 0.0
+    return df
+
+
+def process_ga_services_trend(data: list, top_services: list) -> pd.DataFrame:
+    """Tendência temporal dos top serviços. Retorna DataFrame pivotado."""
+    if not data:
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    df = df.rename(columns={"screenPageTitle": "Serviço", "date": "Data", "eventCount": "Acessos"})
+    df["Acessos"] = pd.to_numeric(df["Acessos"], errors="coerce").fillna(0).astype(int)
+    df = df[df["Serviço"].isin(top_services)]
+    df["Data"] = pd.to_datetime(df["Data"], format="%Y%m%d", errors="coerce")
+    df = df.dropna(subset=["Data"]).sort_values("Data")
+    return df
+
+
 def process_ga_events(data: list) -> pd.DataFrame:
     if not data:
         return pd.DataFrame()

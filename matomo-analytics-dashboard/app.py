@@ -3,7 +3,7 @@ import pandas as pd
 import calendar
 from datetime import date as dt_date, timedelta
 
-from config import DEFAULT_PERIOD, DEFAULT_DATE, MATOMO_SITE_ID, GOOGLE_CREDENTIALS_JSON, GOOGLE_PROPERTY_ID
+from config import DEFAULT_PERIOD, DEFAULT_DATE, MATOMO_SITE_ID, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, GOOGLE_PROPERTY_ID
 from api.matomo_client import MatomoAPI
 
 # Loaders Matomo
@@ -52,14 +52,11 @@ def get_api():
 
 
 def get_ga_api():
-    if not GOOGLE_CREDENTIALS_JSON:
-        st.error("Credenciais GA4 não configuradas. Adicione GOOGLE_CREDENTIALS_JSON em secrets.toml.")
-        st.stop()
-    if not GOOGLE_PROPERTY_ID:
-        st.error("GOOGLE_PROPERTY_ID não configurado em secrets.toml.")
+    if not GOOGLE_CLIENT_ID or not GOOGLE_REFRESH_TOKEN:
+        st.error("Credenciais OAuth2 GA4 não configuradas. Adicione GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REFRESH_TOKEN em secrets.toml.")
         st.stop()
     from api.google_analytics_client import GoogleAnalyticsAPI
-    return GoogleAnalyticsAPI(GOOGLE_CREDENTIALS_JSON, GOOGLE_PROPERTY_ID)
+    return GoogleAnalyticsAPI(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, GOOGLE_PROPERTY_ID)
 
 
 def to_ga4_date_range(period: str, date_str: str) -> tuple[str, str]:

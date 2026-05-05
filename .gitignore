@@ -12,3 +12,5 @@ __pycache__/
 # Editor temp files
 *.tmp.*
 *.tmp
+
+client_secret_*.json

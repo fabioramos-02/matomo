@@ -1,17 +1,19 @@
-import json
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
     RunReportRequest, Dimension, Metric, DateRange
 )
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
 
 
 class GoogleAnalyticsAPI:
-    def __init__(self, credentials_json: str, property_id: str):
-        creds_dict = json.loads(credentials_json)
-        credentials = service_account.Credentials.from_service_account_info(
-            creds_dict,
-            scopes=["https://www.googleapis.com/auth/analytics.readonly"]
+    def __init__(self, client_id: str, client_secret: str, refresh_token: str, property_id: str):
+        credentials = Credentials(
+            token=None,
+            refresh_token=refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=client_id,
+            client_secret=client_secret,
+            scopes=["https://www.googleapis.com/auth/analytics.readonly"],
         )
         self.client = BetaAnalyticsDataClient(credentials=credentials)
         self.property = f"properties/{property_id}"

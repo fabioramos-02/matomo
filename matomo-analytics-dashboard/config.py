@@ -22,6 +22,8 @@ MATOMO_TOKEN = get_config("MATOMO_TOKEN", "")  # Protegido!
 DEFAULT_PERIOD = "month"
 DEFAULT_DATE = "today"
 
-# Google Analytics (MS Digital App)
-GOOGLE_CREDENTIALS_JSON = get_config("GOOGLE_CREDENTIALS_JSON", "")
+# Google Analytics (MS Digital App) — OAuth2 com conta pessoal
+GOOGLE_CLIENT_ID = get_config("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = get_config("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REFRESH_TOKEN = get_config("GOOGLE_REFRESH_TOKEN", "")
 GOOGLE_PROPERTY_ID = get_config("GOOGLE_PROPERTY_ID", "")

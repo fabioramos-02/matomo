@@ -88,3 +88,6 @@ class MatomoAPI:
         if segment:
             params['segment'] = segment
         return self.get_data('Live.getLastVisitsDetails', period, date, params, site_id)
+
+    def get_visits_summary(self, period, date, site_id=None):
+        return self.get_data('VisitsSummary.get', period, date, None, site_id)

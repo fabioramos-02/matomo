@@ -56,6 +56,10 @@ def load_entry_pages_data(_api, p, d, sid):
 def load_last_visits_data(_api, p, d, sid, segment):
     return _api.get_last_visits(p, d, site_id=sid, segment=segment, limit=10)
 
+@st.cache_data(ttl=3600)
+def load_visits_summary_data(_api, p, d, sid):
+    return _api.get_visits_summary(p, d, site_id=sid)
+
 @st.cache_data(ttl=86400)
 def load_ms_geojson():
     url = "https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-50-mun.json"

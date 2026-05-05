@@ -1,10 +1,16 @@
 import streamlit as st
 import plotly.express as px
 
-def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geojson, fonte="Portal (Matomo)"):
+def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geojson, visits_summary=None, fonte="Portal (Matomo)"):
     st.header("Perfil do Cidadão")
     st.markdown("Quem são, de onde vêm, com qual dispositivo e em qual horário acessam.")
-    
+
+    if visits_summary:
+        nb_visits = visits_summary.get("nb_visits", 0)
+        col_metric = st.columns(3)[0]
+        col_metric.metric("Total de Acessos", f"{nb_visits:,}".replace(",", "."))
+        st.caption("ℹ️ Valor total de acessos globais (independente de região ou estado).")
+
     st.subheader("🗺️ Distribuição Geográfica (Mato Grosso do Sul)")
     if not df_cities.empty:
         col_map, col_tab = st.columns([2, 1])

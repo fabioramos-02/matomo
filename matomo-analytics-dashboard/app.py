@@ -14,6 +14,7 @@ from utils.data_loaders import (
     load_visit_time_data,
     load_devices_data,
     load_ms_geojson,
+    load_visits_summary_data,
 )
 
 # Loaders GA4
@@ -151,6 +152,7 @@ if fonte == "Portal (Matomo)":
         df_cities = load_geography_data(api, period, date, selected_site_id)
         df_time = load_visit_time_data(api, period, date, selected_site_id)
         df_browsers, df_device_types = load_devices_data(api, period, date, selected_site_id)
+        visits_summary = load_visits_summary_data(api, period, date, selected_site_id)
         ms_geojson = load_ms_geojson()
 
     if df_pages.empty:
@@ -164,7 +166,7 @@ if fonte == "Portal (Matomo)":
         "4. Fluxo de Navegação",
     ])
     with tab1:
-        render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geojson)
+        render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geojson, visits_summary=visits_summary)
     with tab2:
         render_tab2_busca(df_search)
     with tab3:

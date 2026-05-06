@@ -1,8 +1,9 @@
 # Streamlit secrets
 .streamlit/secrets.toml
 
-# Google Service Account keys
+# Google Service Account keys (Ignores keys but allows data files)
 *.json
+!matomo-analytics-dashboard/data/*.json
 
 # Python
 __pycache__/

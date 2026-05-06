@@ -2,12 +2,20 @@ import streamlit as st
 import plotly.express as px
 
 
-def render_ga_tab1_overview(overview: dict, df_platform):
+def render_ga_tab1_overview(overview: dict, df_platform, df_funnel):
     st.header("Visão Geral — MS Digital App")
     st.markdown("Métricas consolidadas de uso do aplicativo no período selecionado.")
 
+    # Extrai Novos Downloads (first_open) do df_funnel
+    novos_downloads = 0
+    if not df_funnel.empty:
+        df_fo = df_funnel[df_funnel["Evento"] == "first_open"]
+        if not df_fo.empty:
+            novos_downloads = int(df_fo.iloc[0]["Usuários"])
+
     # KPIs
-    col1, col2, col3 = st.columns(3)
+    col0, col1, col2, col3 = st.columns(4)
+    col0.metric("📥 Novos Downloads", f"{novos_downloads:,}".replace(",", "."))
     col1.metric("👤 Usuários Ativos", f"{overview['total_users']:,}".replace(",", "."))
     col2.metric("📱 Sessões", f"{overview['total_sessions']:,}".replace(",", "."))
     col3.metric("🖥️ Visualizações de Tela", f"{overview['total_views']:,}".replace(",", "."))

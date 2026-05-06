@@ -209,7 +209,7 @@ else:
         "4. Jornada do Usuário",
     ])
     with tab1:
-        render_ga_tab1_overview(ga_overview, df_platform)
+        render_ga_tab1_overview(ga_overview, df_platform, df_funnel)
     with tab2:
         render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_links)
     with tab3:

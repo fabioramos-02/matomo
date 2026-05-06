@@ -71,9 +71,12 @@ def render_ga_tab4_jornada(df_funnel):
     """)
 
     if not df_sistema.empty and "Usuários" in df_sistema.columns:
-        # Ordem lógica: Todo mundo que entra -> Quem navega -> Quem engaja de verdade
-        # first_open fica por último como um 'subset' de aquisição
-        ordem_funil = ["session_start", "screen_view", "user_engagement", "first_open"]
+        # Ordem lógica sugerida pela gestão:
+        # 1. Novos Downloads (Primeira abertura)
+        # 2. Entrada (Sessão iniciada)
+        # 3. Navegação (Visualização de telas)
+        # 4. Engajamento (Interação ativa)
+        ordem_funil = ["first_open", "session_start", "screen_view", "user_engagement"]
         
         df_funnel_plot = (
             df_sistema[df_sistema["Evento"].isin(ordem_funil)]
@@ -84,10 +87,10 @@ def render_ga_tab4_jornada(df_funnel):
         )
         
         label_funil = {
-            "session_start":   "1. Entrada (Sessão)",
-            "screen_view":     "2. Navegação (Telas)",
-            "user_engagement": "3. Engajamento Ativo",
-            "first_open":      "4. Novos Usuários"
+            "first_open":      "1. Aquisição (Downloads)",
+            "session_start":   "2. Ativação (Sessão)",
+            "screen_view":     "3. Navegação (Telas)",
+            "user_engagement": "4. Retenção (Engajamento)"
         }
         
         df_funnel_plot["Etapa"] = df_funnel_plot["Evento"].map(label_funil)
@@ -105,10 +108,10 @@ def render_ga_tab4_jornada(df_funnel):
         # ── O Storytelling (Para a chefe) ─────────────────────────────────────
         with st.expander("💡 Como explicar estes dados para a gestão?", expanded=True):
             st.markdown(f"""
-            *   **Entrada (Sessão):** Representa o alcance total. Temos **{_fmt(df_funnel_plot.iloc[0]['Usuários'])}** pessoas que abriram o app no período.
-            *   **Navegação (Telas):** Dos que entraram, **{df_funnel_plot.iloc[1]['Usuários'] / df_funnel_plot.iloc[0]['Usuários']:.1%}** progrediram para ver ao menos uma funcionalidade. Se este número for baixo, há barreira no login ou carregamento inicial.
-            *   **Engajamento Ativo:** Indica usuários que não apenas abriram o app, mas interagiram por tempo relevante. Temos **{_fmt(df_funnel_plot.iloc[2]['Usuários'])}** usuários ativos "de verdade".
-            *   **Novos Usuários:** Identifica que **{df_funnel_plot.iloc[3]['Usuários'] / df_funnel_plot.iloc[0]['Usuários']:.1%}** do seu público total são pessoas que nunca tinham usado o MS Digital antes, mostrando o ritmo de crescimento da base.
+            *   **Aquisição (Downloads):** Temos **{_fmt(df_funnel_plot.iloc[0]['Usuários'])}** novos usuários que baixaram e abriram o app pela primeira vez. 
+            *   **Ativação (Sessão):** Total de **{_fmt(df_funnel_plot.iloc[1]['Usuários'])}** usuários únicos geraram sessões no período (inclui novos e antigos).
+            *   **Navegação (Telas):** Dos que ativaram, **{df_funnel_plot.iloc[2]['Usuários'] / df_funnel_plot.iloc[1]['Usuários']:.1%}** progrediram para ver ao menos uma funcionalidade.
+            *   **Retenção (Engajamento):** Representa o público fiel. Temos **{_fmt(df_funnel_plot.iloc[3]['Usuários'])}** usuários que interagiram de forma contínua com o app.
             """)
     else:
         st.info("Dados de usuários únicos não disponíveis para gerar o funil.")

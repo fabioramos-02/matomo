@@ -77,7 +77,7 @@ class GoogleAnalyticsAPI:
         # userEngagementDuration = tempo total de engajamento (em segundos)
         return self._run_report(
             ["newVsReturning"], 
-            ["activeUsers", "sessions", "screenPageViews", "userEngagementDuration"], 
+            ["activeUsers", "sessions", "screenPageViews", "userEngagementDuration", "averageEngagementTime"], 
             start_date, end_date
         )
 

@@ -17,12 +17,17 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
         with col_map:
             try:
                 df_map = df_cities[df_cities['Cidade'] != 'Unknown'].copy()
+                import numpy as np
+                df_map["Visitas (Log)"] = np.log10(df_map["Visitas"] + 1)
+                
                 fig_cities = px.choropleth_mapbox(
                     df_map, geojson=ms_geojson, locations='Cidade', featureidkey='properties.name',
-                    color='Visitas', color_continuous_scale='Greens', mapbox_style='carto-positron',
-                    zoom=5, center={'lat': -20.44278, 'lon': -54.64639}, opacity=0.7, title="Acessos por Município"
+                    color='Visitas (Log)', color_continuous_scale='YlGn', mapbox_style='carto-positron',
+                    zoom=5, center={'lat': -20.44278, 'lon': -54.64639}, opacity=0.7, 
+                    title="Densidade de Acessos por Município (Escala Log)",
+                    hover_data={"Visitas": True, "Visitas (Log)": False}
                 )
-                fig_cities.update_layout(margin={"r":0,"t":40,"l":0,"b":0})
+                fig_cities.update_layout(margin={"r":0,"t":40,"l":0,"b":0}, coloraxis_showscale=False)
                 st.plotly_chart(fig_cities, use_container_width=True)
             except Exception as e:
                 fig_cities = px.bar(df_cities.head(15), x='Cidade', y='Visitas', color='Visitas', color_continuous_scale='Greens', title="Top 15 Cidades")

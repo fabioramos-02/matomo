@@ -70,21 +70,24 @@ def render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, ms_geojson
                 df_map = df_cities[df_cities["lat"].notna() & df_cities["lon"].notna()].copy()
             
             if not df_map.empty:
+                import numpy as np
+                df_map["Visitas (Log)"] = np.log10(df_map["Visitas"] + 1)
+                
                 fig_map = px.scatter_mapbox(
                     df_map,
                     lat="lat",
                     lon="lon",
                     size="Visitas",
-                    color="Visitas",
+                    color="Visitas (Log)",
                     hover_name="Cidade",
-                    hover_data={"UF": True, "Visitas": True, "lat": False, "lon": False},
-                    color_continuous_scale="Blues",
+                    hover_data={"UF": True, "Visitas": True, "Visitas (Log)": False, "lat": False, "lon": False},
+                    color_continuous_scale="Viridis",
                     size_max=15,
                     zoom=3.5,
                     center={"lat": -15.7801, "lon": -47.9292}, # Centro do Brasil
                     mapbox_style="carto-positron",
                 )
-                fig_map.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0}, height=500)
+                fig_map.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0}, height=500, coloraxis_showscale=False)
                 st.plotly_chart(fig_map, use_container_width=True)
             else:
                 st.info("Coordenadas geográficas detalhadas não disponíveis no payload do GA4 para esta propriedade. O mapa de calor em tempo real requer que a coleta de latitude/longitude esteja ativa.")

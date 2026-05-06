@@ -1,4 +1,7 @@
 import pandas as pd
+import json
+import os
+import streamlit as st
 
 
 def process_ga_screens(data: list) -> pd.DataFrame:
@@ -49,7 +52,54 @@ _REGION_TO_UF = {
 }
 
 
-from utils.geo_constants import CITY_COORDS
+@st.cache_data
+def get_geo_lookup():
+    """Carrega dados de municípios e estados para geocodificação."""
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    mun_path = os.path.join(base_path, "data", "municipios.json")
+    est_path = os.path.join(base_path, "data", "estados.json")
+    
+    lookup = {}
+    try:
+        with open(mun_path, "r", encoding="utf-8") as f:
+            municipios = json.load(f)
+        with open(est_path, "r", encoding="utf-8") as f:
+            estados = json.load(f)
+        
+        uf_map = {e["codigo_uf"]: e["uf"] for e in estados}
+        
+        for m in municipios:
+            uf = uf_map.get(m["codigo_uf"], "??")
+            # Chave composta (nome minúsculo, UF)
+            lookup[(m["nome"].lower(), uf)] = {"lat": m["latitude"], "lon": m["longitude"]}
+            # Atalho para Mato Grosso do Sul
+            if uf == "MS":
+                lookup[m["nome"].lower()] = {"lat": m["latitude"], "lon": m["longitude"]}
+    except Exception as e:
+        st.error(f"Erro ao carregar dicionário geográfico: {e}")
+    return lookup
+
+
+def apply_geo_fallback(row, lookup):
+    """Tenta encontrar coordenadas no dicionário se não existirem no GA4."""
+    # Se lat/lon já existem e são válidos, mantém
+    if pd.notna(row.get("lat")) and pd.notna(row.get("lon")) and row["lat"] != 0:
+        return row["lat"], row["lon"]
+
+    cidade = str(row.get("Cidade", "")).lower()
+    uf = row.get("UF", "")
+    
+    # Busca por (Cidade, UF)
+    if (cidade, uf) in lookup:
+        res = lookup[(cidade, uf)]
+        return res["lat"], res["lon"]
+    
+    # Busca apenas por Cidade (fallback para MS)
+    if cidade in lookup:
+        res = lookup[cidade]
+        return res["lat"], res["lon"]
+
+    return row.get("lat"), row.get("lon")
 
 def process_ga_cities(data: list) -> pd.DataFrame:
     if not data:
@@ -77,25 +127,15 @@ def process_ga_cities(data: list) -> pd.DataFrame:
     if "lon" in df.columns:
         df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
 
-    # Fallback de Geocodificação Estática para Cidades de MS (quando GA4 não envia coordenadas)
-    def apply_geo_fallback(row):
-        # Se lat/lon já existem e são válidos, mantém
-        if pd.notna(row.get("lat")) and pd.notna(row.get("lon")):
-            return row["lat"], row["lon"]
-
-        # Tenta buscar no dicionário estático
-        cidade = row.get("Cidade")
-        if cidade in CITY_COORDS:
-            return CITY_COORDS[cidade]["lat"], CITY_COORDS[cidade]["lon"]
-
-        return row.get("lat"), row.get("lon")
+    # Fallback de Geocodificação via Dicionário de Dados
+    geo_lookup = get_geo_lookup()
 
     # Garante que lat/lon existam antes de aplicar fallback
     for col in ["lat", "lon"]:
         if col not in df.columns:
             df[col] = pd.NA
 
-    df[["lat", "lon"]] = df.apply(lambda r: pd.Series(apply_geo_fallback(r)), axis=1)
+    df[["lat", "lon"]] = df.apply(lambda r: pd.Series(apply_geo_fallback(r, geo_lookup)), axis=1)
 
     # Garantia de colunas mínimas para evitar quebra no agrupamento/UI
     if "Cidade" not in df.columns:
@@ -206,9 +246,12 @@ def process_ga_overview(data: list) -> dict:
     total_users = int(df["Usuários"].sum())
     
     # Cálculo do Tempo de Engajamento
-    # Se userEngagementDuration (segundos totais) existe e é > 0, usamos ele
-    # Caso contrário, tentamos usar averageSessionDuration (que já vem como média do GA4)
-    if "userEngagementDuration" in df.columns and df["userEngagementDuration"].sum() > 0:
+    # 1. Prioriza averageEngagementTime (já vem calculado por usuário ativo no GA4)
+    # 2. Fallback para userEngagementDuration / activeUsers
+    # 3. Fallback para averageSessionDuration
+    if "averageEngagementTime" in df.columns and df["averageEngagementTime"].sum() > 0:
+        avg_sec = df["averageEngagementTime"].mean()
+    elif "userEngagementDuration" in df.columns and df["userEngagementDuration"].sum() > 0:
         total_engagement_sec = df["userEngagementDuration"].sum()
         avg_sec = total_engagement_sec / total_users if total_users > 0 else 0
     elif "averageSessionDuration" in df.columns:

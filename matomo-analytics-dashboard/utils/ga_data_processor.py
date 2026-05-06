@@ -321,13 +321,11 @@ def process_ga_services(data: list) -> pd.DataFrame:
         return pd.DataFrame()
     df = pd.DataFrame(data)
     
-    # Renomeação flexível
-    if "screenName" in df.columns:
-        df = df.rename(columns={"screenName": "Serviço"})
-    elif "pageTitle" in df.columns:
-        df = df.rename(columns={"pageTitle": "Serviço"})
-    elif "screenPageTitle" in df.columns:
-        df = df.rename(columns={"screenPageTitle": "Serviço"})
+    # Renomeação flexível (Prioriza pageTitle que é o padrão normalizado vindo da API)
+    for col in ["pageTitle", "screenName", "unifiedPageScreenName", "screenPageTitle", "customEvent:unified_screen_name"]:
+        if col in df.columns:
+            df = df.rename(columns={col: "Serviço"})
+            break
         
     metric_col = "eventCount" if "eventCount" in df.columns else "screenPageViews" if "screenPageViews" in df.columns else "activeUsers"
     if metric_col in df.columns:
@@ -339,8 +337,9 @@ def process_ga_services(data: list) -> pd.DataFrame:
         print(f"⚠️ process_ga_services: Coluna de Serviço não encontrada. Colunas disponíveis: {df.columns.tolist()}")
         return pd.DataFrame()
 
-    # Limpeza básica antes do filtro de eventos (remove (other), (not set) e vazios)
-    df = df[df["Serviço"].notna() & ~df["Serviço"].isin(_SERVICOS_EXCLUIR | {"(other)"})]
+    # Limpeza básica (remove (other), (not set) e vazios)
+    excluir = _SERVICOS_EXCLUIR | {"(other)", "(not set)", ""}
+    df = df[df["Serviço"].notna() & ~df["Serviço"].isin(excluir)]
     
     # Filtro inteligente de eventos (menos restritivo)
     # Se tivermos 'use_feature', focamos nele. 

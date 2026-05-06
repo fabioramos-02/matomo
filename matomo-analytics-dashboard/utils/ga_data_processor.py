@@ -315,13 +315,14 @@ def process_ga_funnel(data: list) -> pd.DataFrame:
     return pd.concat([sistema, customizados], ignore_index=True)
 
 
-_SERVICOS_EXCLUIR = {"(not set)", "", "Educação", "Segurança", "Trânsito"}
+_SERVICOS_EXCLUIR = {"(not set)", "", "Educação", "Segurança", "Trânsito", "Home"}
 _EVENTO_SERVICO = "use_feature"
 
 
 def process_ga_services(data: list) -> pd.DataFrame:
-    """Segmento 'Funcionalidade' do GA4: use_feature por unifiedScreenName.
-    Exclusoes do payload: (not set), Educacao, Seguranca, Transito."""
+    """Segmento 'Funcionalidade' do GA4. 
+    Tenta capturar via screenPageTitle/pageTitle.
+    Não filtra estritamente por use_feature para garantir dados mesmo em implementações padrão."""
     if not data:
         return pd.DataFrame()
     df = pd.DataFrame(data)
@@ -332,13 +333,19 @@ def process_ga_services(data: list) -> pd.DataFrame:
     elif "pageTitle" in df.columns:
         df = df.rename(columns={"pageTitle": "Serviço"})
         
-    df["Acessos"] = pd.to_numeric(df.get("eventCount", 0), errors="coerce").fillna(0).astype(int)
+    metric_col = "eventCount" if "eventCount" in df.columns else "screenPageViews" if "screenPageViews" in df.columns else None
     
-    if "eventName" in df.columns:
-        df = df[df["eventName"] == _EVENTO_SERVICO]
+    if metric_col:
+        df["Acessos"] = pd.to_numeric(df[metric_col], errors="coerce").fillna(0).astype(int)
+    else:
+        df["Acessos"] = 0
         
     if "Serviço" not in df.columns:
         return pd.DataFrame()
+
+    # Se existir use_feature, prioriza ele, senão pega tudo que não for ruído
+    if "eventName" in df.columns and _EVENTO_SERVICO in df["eventName"].values:
+        df = df[df["eventName"] == _EVENTO_SERVICO]
 
     df = df[df["Serviço"].notna() & ~df["Serviço"].isin(_SERVICOS_EXCLUIR)]
     df = df.groupby("Serviço", as_index=False)["Acessos"].sum()
@@ -349,7 +356,7 @@ def process_ga_services(data: list) -> pd.DataFrame:
 
 
 def process_ga_services_trend(data: list, top_services: list) -> pd.DataFrame:
-    """Tendência temporal dos top serviços. Filtra por use_feature e exclusoes do segmento."""
+    """Tendência temporal dos top serviços."""
     if not data:
         return pd.DataFrame()
     df = pd.DataFrame(data)
@@ -360,13 +367,18 @@ def process_ga_services_trend(data: list, top_services: list) -> pd.DataFrame:
     elif "pageTitle" in df.columns:
         df = df.rename(columns={"pageTitle": "Serviço"})
         
-    df["Acessos"] = pd.to_numeric(df.get("eventCount", 0), errors="coerce").fillna(0).astype(int)
+    metric_col = "eventCount" if "eventCount" in df.columns else "screenPageViews" if "screenPageViews" in df.columns else None
     
-    if "eventName" in df.columns:
-        df = df[df["eventName"] == _EVENTO_SERVICO]
+    if metric_col:
+        df["Acessos"] = pd.to_numeric(df[metric_col], errors="coerce").fillna(0).astype(int)
+    else:
+        df["Acessos"] = 0
         
     if "Serviço" not in df.columns:
         return pd.DataFrame()
+
+    if "eventName" in df.columns and _EVENTO_SERVICO in df["eventName"].values:
+        df = df[df["eventName"] == _EVENTO_SERVICO]
 
     df = df[df["Serviço"].isin(top_services)]
     if "date" in df.columns:

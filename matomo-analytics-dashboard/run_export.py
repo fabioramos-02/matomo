@@ -12,13 +12,17 @@ from utils.ga_data_processor import (
     process_ga_overview,
     process_ga_cities,
     process_ga_services,
-    process_ga_platform
+    process_ga_platform,
+    process_ga_funnel,
+    process_ga_external_links,
+    process_ga_search
 )
 from utils.data_processor import (
     process_cities_ms,
     process_matomo_summary,
     process_page_urls,
-    identify_service_cards
+    identify_service_cards,
+    process_search_keywords
 )
 
 # Importar Exportador
@@ -70,6 +74,18 @@ def run():
         raw_platform = ga_api.get_platform(start_date, end_date)
         data_to_export["ga_platform"] = process_ga_platform(raw_platform)
         
+        # Funil de Eventos (Jornada)
+        raw_funnel = ga_api.get_funnel_events(start_date, end_date)
+        data_to_export["ga_funnel"] = process_ga_funnel(raw_funnel)
+        
+        # Links Externos
+        raw_links = ga_api.get_external_links(start_date, end_date)
+        data_to_export["ga_links"] = process_ga_external_links(raw_links)
+
+        # Buscas Internas
+        raw_ga_search = ga_api.get_search_keywords(start_date, end_date)
+        data_to_export["ga_search"] = process_ga_search(raw_ga_search)
+        
     except Exception as e:
         print(f"❌ Erro ao processar GA4: {e}")
 
@@ -88,6 +104,10 @@ def run():
         raw_page_urls = matomo_api.get_page_urls("range", f"{start_date},{end_date}", limit=500)
         df_pages = process_page_urls(raw_page_urls)
         data_to_export["matomo_services"] = identify_service_cards(df_pages)
+
+        # Buscas Internas
+        raw_matomo_search = matomo_api.get_site_search_keywords("range", f"{start_date},{end_date}")
+        data_to_export["matomo_search"] = process_search_keywords(raw_matomo_search)
 
     except Exception as e:
         print(f"❌ Erro ao processar Matomo: {e}")

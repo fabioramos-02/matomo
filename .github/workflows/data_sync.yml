@@ -8,7 +8,13 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    # Adicionando o diretório padrão para todos os comandos 'run'
+    # ── NOVO: Especifica que este job usa o ambiente onde você criou os segredos ──
+    environment: qlik-env
+
+    # ── NOVO: Dá permissão para o robô salvar os arquivos no repositório ──
+    permissions:
+      contents: write
+
     defaults:
       run:
         working-directory: ./matomo-analytics-dashboard
@@ -17,13 +23,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
-          # Importante: O checkout precisa ser na raiz para pegar as subpastas
           path: "."
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.10" # Atualizado para evitar avisos
 
       - name: Install Dependencies
         run: |
@@ -42,11 +47,12 @@ jobs:
         run: python run_export.py
 
       - name: Commit and Push Changes
-        # O commit precisa ser feito na raiz do repo, então sobrescrevemos o working-directory aqui
         working-directory: .
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add matomo-analytics-dashboard/exports/*.csv
+          # Garante que a pasta exports existe para o git add não falhar
+          mkdir -p matomo-analytics-dashboard/exports
+          git add matomo-analytics-dashboard/exports/*.csv || echo "Nenhum arquivo para adicionar"
           git commit -m "📊 Auto-update data for Qlik [skip ci]" || echo "No changes to commit"
           git push

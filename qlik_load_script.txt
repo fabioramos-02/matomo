@@ -1,0 +1,53 @@
+// =============================================================================
+// SCRIPT DE CARGA QLIK SENSE - DASHBOARD MS DIGITAL
+// =============================================================================
+// Este script deve ser colado no "Editor de Carga de Dados" do Qlik Sense.
+// Certifique-se de criar as conexões "Web File" no Qlik antes de rodar.
+// =============================================================================
+
+// --- 1. VISÃO GERAL (KPIs e Retenção) ---
+// Conexão Necessária: Github_Overview
+Overview:
+LOAD
+    "Tipo",
+    "Usuários",
+    "Sessões",
+    "Visualizações",
+    "Engajamento_Médio"
+FROM [lib://Github_Overview]
+(txt, utf8, embedded labels, delimiter is ';', msq);
+
+// --- 2. RANKING DE SERVIÇOS (Funcionalidades) ---
+// Conexão Necessária: Github_Servicos
+Servicos:
+LOAD
+    "Serviço",
+    "Acessos",
+    "%" as "Percentual"
+FROM [lib://Github_Servicos]
+(txt, utf8, embedded labels, delimiter is ';', msq);
+
+// --- 3. GEOLOCALIZAÇÃO (Cidades do MS) ---
+// Conexão Necessária: Github_Cidades
+Cidades:
+LOAD
+    "Cidade",
+    "UF",
+    "Visitas",
+    "lat",
+    "lon"
+FROM [lib://Github_Cidades]
+(txt, utf8, embedded labels, delimiter is ';', msq);
+
+// =============================================================================
+// INSTRUÇÕES PARA CRIAÇÃO DAS CONEXÕES (Web File):
+// =============================================================================
+// 1. Github_Overview: 
+//    https://raw.githubusercontent.com/fabioramos-02/matomo/main/matomo-analytics-dashboard/exports/ga_overview.csv
+//
+// 2. Github_Servicos:
+//    https://raw.githubusercontent.com/fabioramos-02/matomo/main/matomo-analytics-dashboard/exports/ga_services.csv
+//
+// 3. Github_Cidades:
+//    https://raw.githubusercontent.com/fabioramos-02/matomo/main/matomo-analytics-dashboard/exports/ga_cities.csv
+// =============================================================================

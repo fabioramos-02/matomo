@@ -28,10 +28,10 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
                     hover_data={"Visitas": True, "Visitas (Log)": False}
                 )
                 fig_cities.update_layout(margin={"r":0,"t":40,"l":0,"b":0}, coloraxis_showscale=False)
-                st.plotly_chart(fig_cities, use_container_width=True)
+                st.plotly_chart(fig_cities, width="stretch")
             except Exception as e:
                 fig_cities = px.bar(df_cities.head(15), x='Cidade', y='Visitas', color='Visitas', color_continuous_scale='Greens', title="Top 15 Cidades")
-                st.plotly_chart(fig_cities, use_container_width=True)
+                st.plotly_chart(fig_cities, width="stretch")
         with col_tab:
             st.dataframe(df_cities, height=400)
     else:
@@ -43,7 +43,7 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
     if not df_time.empty:
         fig_time = px.bar(df_time, x='Hora', y='Visitas', color_discrete_sequence=['#ff7f0e'])
         fig_time.update_xaxes(dtick=1) # Força a exibição de todos os ticks de hora
-        st.plotly_chart(fig_time, use_container_width=True)
+        st.plotly_chart(fig_time, width="stretch")
     else:
         st.info("Sem dados de horário disponíveis.")
         
@@ -63,7 +63,7 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
                 legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
                 margin=dict(t=20, b=40, l=20, r=20)
             )
-            st.plotly_chart(fig_b, use_container_width=True)
+            st.plotly_chart(fig_b, width="stretch")
             
     with col_t:
         if not df_device_types.empty:
@@ -75,4 +75,4 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
                 legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
                 margin=dict(t=20, b=40, l=20, r=20)
             )
-            st.plotly_chart(fig_d, use_container_width=True)
+            st.plotly_chart(fig_d, width="stretch")

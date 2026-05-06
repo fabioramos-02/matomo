@@ -15,8 +15,8 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)"):
             fig = px.bar(df_pages.head(15), x='Visitas', y='URL', orientation='h',
                          color='Visitas', color_continuous_scale='Blues')
             fig.update_layout(yaxis={'categoryorder': 'total ascending'})
-            st.plotly_chart(fig, use_container_width=True)
-            st.dataframe(df_show[['#', 'URL', 'Visitas']], hide_index=True, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
+            st.dataframe(df_show[['#', 'URL', 'Visitas']], hide_index=True, width="stretch")
         else:
             st.warning("Sem dados de telas para este período.")
         return
@@ -37,7 +37,7 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)"):
             fig_cat.update_layout(yaxis={'categoryorder':'total ascending'}, clickmode='event+select')
             
             # Interactive Selection
-            event = st.plotly_chart(fig_cat, use_container_width=True, on_select="rerun", selection_mode="points")
+            event = st.plotly_chart(fig_cat, width="stretch", on_select="rerun", selection_mode="points")
             
             selected_category = "Todas as Categorias"
             try:
@@ -69,7 +69,7 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)"):
             st.subheader(f"Top 10 Cartas ({categoria_selecionada})")
             fig_serv = px.bar(df_filtered.head(10), x='Visitas', y='Nome do Serviço', orientation='h', color='Visitas', color_continuous_scale='Blues')
             fig_serv.update_layout(yaxis={'categoryorder':'total ascending'})
-            st.plotly_chart(fig_serv, use_container_width=True)
+            st.plotly_chart(fig_serv, width="stretch")
 
         st.subheader("Explorar Cartas (Links Diretos)")
         
@@ -85,7 +85,7 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)"):
                 "Link": st.column_config.LinkColumn("Acessar no Portal", display_text="🔗 Abrir Serviço")
             },
             hide_index=True,
-            use_container_width=True
+            width="stretch"
         )
     else:
         st.warning("Não foi possível identificar Cartas de Serviço no padrão de URLs para este período.")

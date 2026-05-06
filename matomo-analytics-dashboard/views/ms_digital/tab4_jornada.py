@@ -103,7 +103,7 @@ def render_ga_tab4_jornada(df_funnel):
             color_discrete_sequence=["#1f77b4"]
         )
         fig_funnel.update_layout(margin=dict(t=20, b=20, l=100, r=20), showlegend=False)
-        st.plotly_chart(fig_funnel, use_container_width=True)
+        st.plotly_chart(fig_funnel, width="stretch")
 
         # ── O Storytelling (Para a chefe) ─────────────────────────────────────
         with st.expander("💡 Como explicar estes dados para a gestão?", expanded=True):
@@ -139,7 +139,7 @@ def render_ga_tab4_jornada(df_funnel):
         )
         fig_abandon.update_traces(texttemplate='%{text}%', textposition='outside')
         fig_abandon.update_layout(yaxis_ticksuffix="%", coloraxis_showscale=False)
-        st.plotly_chart(fig_abandon, use_container_width=True)
+        st.plotly_chart(fig_abandon, width="stretch")
     else:
         st.info("Dados de usuários únicos não disponíveis para gerar o funil.")
 
@@ -165,7 +165,7 @@ def render_ga_tab4_jornada(df_funnel):
                 yaxis={"categoryorder": "total ascending"},
                 coloraxis_showscale=False,
             )
-            st.plotly_chart(fig_ev, use_container_width=True)
+            st.plotly_chart(fig_ev, width="stretch")
 
         with col_table:
             df_show = df_custom.head(15).copy()
@@ -173,6 +173,6 @@ def render_ga_tab4_jornada(df_funnel):
             cols_show = ["#", "Evento", "Ocorrências"]
             if "Usuários" in df_show.columns:
                 cols_show.append("Usuários")
-            st.dataframe(df_show[cols_show], hide_index=True, use_container_width=True)
+            st.dataframe(df_show[cols_show], hide_index=True, width="stretch")
     else:
         st.info("Sem eventos customizados no período.")

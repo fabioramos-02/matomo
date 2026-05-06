@@ -37,12 +37,12 @@ def render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, ms_geojson
                 geo=dict(showframe=False, showcoastlines=True, lakecolor="white"),
                 height=400
             )
-            st.plotly_chart(fig_world, use_container_width=True)
+            st.plotly_chart(fig_world, width="stretch")
 
         with col_tab_world:
             df_pais = df_country_map.copy()
             df_pais.insert(0, "#", df_pais.index + 1)
-            st.dataframe(df_pais[["#", "País", "Usuários"]], hide_index=True, use_container_width=True, height=400)
+            st.dataframe(df_pais[["#", "País", "Usuários"]], hide_index=True, width="stretch", height=400)
     else:
         st.info("Sem dados de país disponíveis.")
 
@@ -88,7 +88,7 @@ def render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, ms_geojson
                     mapbox_style="carto-positron",
                 )
                 fig_map.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0}, height=500, coloraxis_showscale=False)
-                st.plotly_chart(fig_map, use_container_width=True)
+                st.plotly_chart(fig_map, width="stretch")
             else:
                 st.info("Coordenadas geográficas detalhadas não disponíveis no payload do GA4 para esta propriedade. O mapa de calor em tempo real requer que a coleta de latitude/longitude esteja ativa.")
 
@@ -96,7 +96,7 @@ def render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, ms_geojson
             df_show = df_cities.copy()
             df_show.insert(0, "#", df_show.index + 1)
             cols = ["#", "Cidade", "UF", "Visitas"]
-            st.dataframe(df_show[cols], hide_index=True, use_container_width=True, height=500)
+            st.dataframe(df_show[cols], hide_index=True, width="stretch", height=500)
     else:
         st.info("Sem dados geográficos detalhados.")
 
@@ -108,6 +108,6 @@ def render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, ms_geojson
     if not df_time.empty:
         fig_time = px.bar(df_time, x="Hora", y="Visitas", color_discrete_sequence=["#0077b6"])
         fig_time.update_layout(margin=dict(t=10, b=10))
-        st.plotly_chart(fig_time, use_container_width=True)
+        st.plotly_chart(fig_time, width="stretch")
     else:
         st.info("Sem dados de horário.")

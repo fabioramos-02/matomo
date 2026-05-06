@@ -4,6 +4,7 @@ from google.analytics.data_v1beta.types import (
     FilterExpression, Filter, OrderBy,
 )
 from google.oauth2.credentials import Credentials
+import re
 
 
 class GoogleAnalyticsAPI:
@@ -39,7 +40,57 @@ class GoogleAnalyticsAPI:
                 rows.append(entry)
             return rows
         except Exception as e:
-            print(f"Erro GA4 ({dimensions}/{metrics}): {e}")
+            err_msg = str(e)
+            print(f"Erro GA4 ({dimensions}/{metrics}): {err_msg}")
+            
+            # Fallback Dinâmico baseado na mensagem de erro
+            new_dimensions = list(dimensions)
+            new_metrics = list(metrics)
+            changed = False
+
+            # Mapa de substituições comuns
+            replacements = {
+                "screenPageTitle": "pageTitle",
+                "unifiedScreenName": "pageTitle",
+                "screenName": "pageTitle",
+                "averageEngagementTime": "userEngagementDuration",
+            }
+
+            # Identifica o campo problemático na mensagem de erro
+            match = re.search(r"Field ([\w:]+) is not a valid (dimension|metric)", err_msg)
+            if match:
+                field = match.group(1)
+                ftype = match.group(2)
+                
+                if ftype == "dimension" and field in new_dimensions:
+                    idx = new_dimensions.index(field)
+                    if field in replacements:
+                        replacement = replacements[field]
+                        if replacement in new_dimensions:
+                            new_dimensions.pop(idx)
+                        else:
+                            new_dimensions[idx] = replacement
+                        changed = True
+                    elif field in ["latitude", "longitude"]:
+                        new_dimensions.pop(idx)
+                        changed = True
+                elif ftype == "metric" and field in new_metrics:
+                    idx = new_metrics.index(field)
+                    if field in replacements:
+                        replacement = replacements[field]
+                        if replacement in new_metrics:
+                            new_metrics.pop(idx)
+                        else:
+                            new_metrics[idx] = replacement
+                        changed = True
+                    else:
+                        new_metrics.pop(idx)
+                        changed = True
+
+            if changed and (new_dimensions or new_metrics):
+                print(f"Tentando fallback GA4: {new_dimensions} / {new_metrics}")
+                return self._run_report(new_dimensions, new_metrics, start_date, end_date)
+            
             return []
 
     def get_screen_views(self, start_date: str, end_date: str):
@@ -49,17 +100,7 @@ class GoogleAnalyticsAPI:
         return self._run_report(["searchTerm"], ["eventCount"], start_date, end_date)
 
     def get_geography(self, start_date: str, end_date: str):
-        """Tenta buscar dados geográficos em níveis decrescentes de complexidade."""
-        # 1. Tentativa Completa (Mapa de Pontos)
-        res = self._run_report(["city", "region", "country", "latitude", "longitude"], ["activeUsers"], start_date, end_date)
-        if res: return res
-
-        # 2. Fallback Regional (Tabela Cidade/UF)
-        res = self._run_report(["city", "region", "country"], ["activeUsers"], start_date, end_date)
-        if res: return res
-
-        # 3. Fallback Global (Apenas País)
-        return self._run_report(["country"], ["activeUsers"], start_date, end_date)
+        return self._run_report(["city", "region", "country", "latitude", "longitude"], ["activeUsers"], start_date, end_date)
 
     def get_country_map(self, start_date: str, end_date: str):
         return self._run_report(["country"], ["activeUsers"], start_date, end_date)
@@ -74,7 +115,6 @@ class GoogleAnalyticsAPI:
         return self._run_report(["eventName"], ["eventCount"], start_date, end_date)
 
     def get_overview(self, start_date: str, end_date: str):
-        # userEngagementDuration = tempo total de engajamento (em segundos)
         return self._run_report(
             ["newVsReturning"], 
             ["activeUsers", "sessions", "screenPageViews", "userEngagementDuration", "averageEngagementTime"], 
@@ -85,47 +125,15 @@ class GoogleAnalyticsAPI:
         return self._run_report(["platform", "operatingSystem"], ["activeUsers", "sessions"], start_date, end_date)
 
     def get_funnel_events(self, start_date: str, end_date: str):
-        """Todos os eventos (sem filtro) para visualização de funil."""
         return self._run_report(["eventName"], ["eventCount", "totalUsers"], start_date, end_date)
 
-    # Dimensões candidatas para unified_screen_name (ordem de preferência baseada no payload GA4)
-    _SCREEN_DIM_CANDIDATES = [
-        "unifiedScreenName",
-        "customEvent:unified_screen_name",
-        "screenPageTitle",
-        "screenName",
-    ]
-    _EXCLUIR_TELA = {"(not set)", "", "Educação", "Segurança", "Trânsito"}
-
-    def _get_screen_dim(self, start_date: str, end_date: str) -> tuple[str, list]:
-        """Retorna (dim_name, rows) para a primeira dim que tem dados de use_feature."""
-        for dim in self._SCREEN_DIM_CANDIDATES:
-            rows = self._run_report([dim, "eventName"], ["eventCount"], start_date, end_date)
-            # Só aceita se tiver rows de use_feature com tela não-excluída
-            for r in rows:
-                if r.get("eventName") == "use_feature" and r.get(dim, "(not set)") not in self._EXCLUIR_TELA:
-                    return dim, rows
-        return "screenPageTitle", []
-
     def get_services(self, start_date: str, end_date: str):
-        """Funcionalidades internas: use_feature × melhor dimensão de tela."""
-        dim, rows = self._get_screen_dim(start_date, end_date)
-        for r in rows:
-            if dim != "screenPageTitle":
-                r["screenPageTitle"] = r.pop(dim, "(not set)")
-        return rows
+        return self._run_report(["screenPageTitle", "eventName"], ["eventCount"], start_date, end_date)
 
     def get_services_trend(self, start_date: str, end_date: str):
-        """Tendência temporal: use_feature por melhor dimensão + date."""
-        dim, _ = self._get_screen_dim(start_date, end_date)
-        rows = self._run_report([dim, "date", "eventName"], ["eventCount"], start_date, end_date)
-        for r in rows:
-            if dim != "screenPageTitle":
-                r["screenPageTitle"] = r.pop(dim, "(not set)")
-        return rows
+        return self._run_report(["screenPageTitle", "date", "eventName"], ["eventCount"], start_date, end_date)
 
     def get_external_links(self, start_date: str, end_date: str):
-        """Links externos clicados: linkText + eventCount + activeUsers (evento click outbound)."""
         try:
             request = RunReportRequest(
                 property=self.property,

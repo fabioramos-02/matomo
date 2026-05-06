@@ -10,7 +10,7 @@ def render_tab2_busca(df_search):
             # Correção do ValueError: a coluna correta é 'Buscas' e não 'Pesquisas'
             fig_search = px.bar(df_search.head(15), x='Buscas', y='Palavra-chave', orientation='h', color='Buscas', color_continuous_scale='Purples', title="Top 15 Termos Buscados")
             fig_search.update_layout(yaxis={'categoryorder':'total ascending'})
-            st.plotly_chart(fig_search, use_container_width=True)
+            st.plotly_chart(fig_search, width="stretch")
         with col2:
             st.dataframe(df_search, height=400)
     else:

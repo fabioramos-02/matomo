@@ -43,7 +43,7 @@ def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_l
                 margin=dict(t=10, b=10, r=80),
             )
             fig.update_yaxes(tickfont=dict(size=11))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         with col_table:
             st.markdown("**Tabela completa**")
@@ -53,7 +53,7 @@ def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_l
             st.dataframe(
                 df_show[["#", "Serviço", "Acessos", "% do Total"]],
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
                 height=500,
             )
     else:
@@ -78,7 +78,7 @@ def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_l
             legend=dict(orientation="h", yanchor="bottom", y=-0.35, xanchor="center", x=0.5),
             margin=dict(t=10, b=80),
         )
-        st.plotly_chart(fig_trend, use_container_width=True)
+        st.plotly_chart(fig_trend, width="stretch")
     else:
         st.info("Evolução temporal não disponível para o período selecionado (necessário mais de 1 dia).")
 
@@ -102,12 +102,12 @@ def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_l
             )
             fig_ext.update_layout(yaxis={"categoryorder": "total ascending"}, coloraxis_showscale=False)
             fig_ext.update_yaxes(tickfont=dict(size=11))
-            st.plotly_chart(fig_ext, use_container_width=True)
+            st.plotly_chart(fig_ext, width="stretch")
 
         with col_ext_table:
             df_ext_show = df_external_links.head(20).copy()
             df_ext_show.insert(0, "#", df_ext_show.index + 1)
-            st.dataframe(df_ext_show[["#", "Destino", "Cliques", "Usuários"]], hide_index=True, use_container_width=True)
+            st.dataframe(df_ext_show[["#", "Destino", "Cliques", "Usuários"]], hide_index=True, width="stretch")
     else:
         st.info("Sem dados de links externos para o período.")
 

@@ -29,13 +29,13 @@ def _render_tab4_ga4(df_events):
             color="Acessos", color_continuous_scale="Purples"
         )
         fig.update_layout(yaxis={"categoryorder": "total ascending"})
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with col_table:
         st.subheader("Tabela de Eventos")
         df_show = df_events.head(20).copy()
         df_show.insert(0, "#", df_show.index + 1)
-        st.dataframe(df_show[["#", "Evento", "Acessos"]], hide_index=True, use_container_width=True)
+        st.dataframe(df_show[["#", "Evento", "Acessos"]], hide_index=True, width="stretch")
 
     st.info("💡 Para análise de funil e sequência de telas, acesse diretamente o GA4 em Analytics > Exploração > Funil.")
 
@@ -66,7 +66,7 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Po
                     
                     fig_entry = px.bar(df_entry.head(10), x='Entradas', y='Página Inicial', orientation='h', color='Entradas', color_continuous_scale='Greens')
                     fig_entry.update_layout(yaxis={'categoryorder':'total ascending'})
-                    st.plotly_chart(fig_entry, use_container_width=True)
+                    st.plotly_chart(fig_entry, width="stretch")
             else:
                 st.info("Sem dados de entrada no período.")
 
@@ -84,7 +84,7 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Po
                     
                     fig_out = px.bar(df_out.head(10), x='Saídas', y='Domínio de Destino', orientation='h', color='Saídas', color_continuous_scale='Reds')
                     fig_out.update_layout(yaxis={'categoryorder':'total ascending'})
-                    st.plotly_chart(fig_out, use_container_width=True)
+                    st.plotly_chart(fig_out, width="stretch")
             else:
                 st.info("Sem dados de saída no período.")
 
@@ -137,14 +137,14 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Po
                                color_discrete_sequence=px.colors.qualitative.Prism)
             fig_macro.update_traces(textposition='inside', textinfo='percent')
             fig_macro.update_layout(legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="center", x=0.5))
-            st.plotly_chart(fig_macro, use_container_width=True)
+            st.plotly_chart(fig_macro, width="stretch")
         with col_table:
             st.write("**Top 10 Destinos Específicos a partir da Home:**")
             df_show = df_trans[~df_trans['Tipo de Jornada'].isin(['Recargas/Outros'])].head(10)
             st.dataframe(
                 df_show[['Página de Destino', 'Tipo de Jornada', 'Acessos']],
                 hide_index=True,
-                use_container_width=True
+                width="stretch"
             )
 
     if carregar:

@@ -42,7 +42,7 @@ def render_ga_tab1_overview(overview: dict, df_platform, df_funnel):
             )
             fig.update_traces(textposition="inside", textinfo="percent+label")
             fig.update_layout(showlegend=False, margin=dict(t=20, b=20))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.info("Sem dados de retenção para o período.")
 
@@ -58,7 +58,7 @@ def render_ga_tab1_overview(overview: dict, df_platform, df_funnel):
             )
             fig_plat.update_traces(textposition="inside", textinfo="percent+label")
             fig_plat.update_layout(showlegend=False, margin=dict(t=20, b=20))
-            st.plotly_chart(fig_plat, use_container_width=True)
+            st.plotly_chart(fig_plat, width="stretch")
 
             # Detalhamento por OS
             df_os = df_platform.groupby("Sistema", as_index=False)["Usuários"].sum()

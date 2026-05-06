@@ -52,7 +52,16 @@ _REGION_TO_UF = {
 }
 
 
-@st.cache_data
+import functools
+
+# Decorador de cache compatível com Streamlit e CLI
+def universal_cache(func):
+    try:
+        return st.cache_data(func)
+    except Exception:
+        return functools.lru_cache(maxsize=1)(func)
+
+@universal_cache
 def get_geo_lookup():
     """Carrega dados de municípios e estados para geocodificação."""
     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -61,10 +70,16 @@ def get_geo_lookup():
     
     lookup = {}
     try:
-        with open(mun_path, "r", encoding="utf-8") as f:
-            municipios = json.load(f)
-        with open(est_path, "r", encoding="utf-8") as f:
-            estados = json.load(f)
+        def load_json_with_bom(path):
+            with open(path, "rb") as f:
+                content = f.read()
+                # Remove UTF-8 BOM if present (ef bb bf)
+                if content.startswith(b"\xef\xbb\xbf"):
+                    content = content[3:]
+                return json.loads(content.decode("utf-8"))
+
+        municipios = load_json_with_bom(mun_path)
+        estados = load_json_with_bom(est_path)
         
         uf_map = {e["codigo_uf"]: e["uf"] for e in estados}
         
@@ -310,10 +325,21 @@ def process_ga_services(data: list) -> pd.DataFrame:
     if not data:
         return pd.DataFrame()
     df = pd.DataFrame(data)
-    df = df.rename(columns={"screenPageTitle": "Serviço", "eventCount": "Acessos"})
-    df["Acessos"] = pd.to_numeric(df["Acessos"], errors="coerce").fillna(0).astype(int)
+    
+    # Renomeação flexível (suporta fallback de screenPageTitle -> pageTitle)
+    if "screenPageTitle" in df.columns:
+        df = df.rename(columns={"screenPageTitle": "Serviço"})
+    elif "pageTitle" in df.columns:
+        df = df.rename(columns={"pageTitle": "Serviço"})
+        
+    df["Acessos"] = pd.to_numeric(df.get("eventCount", 0), errors="coerce").fillna(0).astype(int)
+    
     if "eventName" in df.columns:
         df = df[df["eventName"] == _EVENTO_SERVICO]
+        
+    if "Serviço" not in df.columns:
+        return pd.DataFrame()
+
     df = df[df["Serviço"].notna() & ~df["Serviço"].isin(_SERVICOS_EXCLUIR)]
     df = df.groupby("Serviço", as_index=False)["Acessos"].sum()
     df = df.sort_values("Acessos", ascending=False).reset_index(drop=True)
@@ -327,13 +353,25 @@ def process_ga_services_trend(data: list, top_services: list) -> pd.DataFrame:
     if not data:
         return pd.DataFrame()
     df = pd.DataFrame(data)
-    df = df.rename(columns={"screenPageTitle": "Serviço", "date": "Data", "eventCount": "Acessos"})
-    df["Acessos"] = pd.to_numeric(df["Acessos"], errors="coerce").fillna(0).astype(int)
+    
+    # Renomeação flexível
+    if "screenPageTitle" in df.columns:
+        df = df.rename(columns={"screenPageTitle": "Serviço"})
+    elif "pageTitle" in df.columns:
+        df = df.rename(columns={"pageTitle": "Serviço"})
+        
+    df["Acessos"] = pd.to_numeric(df.get("eventCount", 0), errors="coerce").fillna(0).astype(int)
+    
     if "eventName" in df.columns:
         df = df[df["eventName"] == _EVENTO_SERVICO]
+        
+    if "Serviço" not in df.columns:
+        return pd.DataFrame()
+
     df = df[df["Serviço"].isin(top_services)]
-    df["Data"] = pd.to_datetime(df["Data"], format="%Y%m%d", errors="coerce")
-    df = df.dropna(subset=["Data"]).sort_values("Data")
+    if "date" in df.columns:
+        df["Data"] = pd.to_datetime(df["date"], format="%Y%m%d", errors="coerce")
+        df = df.dropna(subset=["Data"]).sort_values("Data")
     return df
 
 

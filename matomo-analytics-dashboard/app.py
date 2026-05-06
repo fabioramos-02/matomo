@@ -66,19 +66,27 @@ def get_ga_api():
 
 def to_ga4_date_range(period: str, date_str: str) -> tuple[str, str]:
     d = dt_date.fromisoformat(date_str.split(",")[0])
+    today = dt_date.today()
+    
     if period == "day":
         return d.isoformat(), d.isoformat()
     if period == "week":
         monday = d - timedelta(days=d.weekday())
-        return monday.isoformat(), (monday + timedelta(days=6)).isoformat()
+        sunday = monday + timedelta(days=6)
+        return monday.isoformat(), min(sunday, today).isoformat()
     if period == "month":
         last_day = calendar.monthrange(d.year, d.month)[1]
-        return d.replace(day=1).isoformat(), d.replace(day=last_day).isoformat()
+        start = d.replace(day=1)
+        end = d.replace(day=last_day)
+        return start.isoformat(), min(end, today).isoformat()
     if period == "year":
-        return f"{d.year}-01-01", f"{d.year}-12-31"
+        start = dt_date(d.year, 1, 1)
+        end = dt_date(d.year, 12, 31)
+        return start.isoformat(), min(end, today).isoformat()
     if period == "range":
         parts = date_str.split(",")
-        return parts[0].strip(), parts[1].strip()
+        start_s, end_s = parts[0].strip(), parts[1].strip()
+        return start_s, end_s
     return d.isoformat(), d.isoformat()
 
 
@@ -132,6 +140,8 @@ else:
     single_date = st.sidebar.date_input("Data de referência", value=dt_date.today(),
                                          max_value=dt_date.today(), format="DD/MM/YYYY")
     date = single_date.strftime("%Y-%m-%d")
+    if fonte == "MS Digital (GA4)" and period == "day" and single_date == dt_date.today():
+        st.sidebar.warning("⚠️ Dados de hoje podem não estar disponíveis no GA4 (atraso de até 48h).")
 
 # ==========================================
 # CABEÇALHO

@@ -199,3 +199,28 @@ def process_device_types(data):
             
         return df
     return pd.DataFrame()
+
+def process_matomo_summary(data):
+    """Processa o resumo de visitas do Matomo."""
+    if not data or not isinstance(data, dict):
+        return pd.DataFrame()
+    
+    # Transforma o dicionário em uma linha de DataFrame
+    df = pd.DataFrame([data])
+    
+    # Renomeia colunas para ficar mais amigável no Qlik
+    mapping = {
+        'nb_visits': 'Visitas',
+        'nb_actions': 'Ações',
+        'nb_users': 'Usuários Únicos',
+        'max_actions': 'Máximo de Ações',
+        'sum_visit_length': 'Tempo Total (s)',
+        'bounce_count': 'Rejeições',
+        'nb_visits_converted': 'Conversões'
+    }
+    
+    df = df.rename(columns=mapping)
+    # Mantém apenas as colunas mapeadas que existirem no dado
+    cols_to_keep = [c for c in mapping.values() if c in df.columns]
+    return df[cols_to_keep]
+

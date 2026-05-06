@@ -15,7 +15,10 @@ from utils.ga_data_processor import (
     process_ga_platform
 )
 from utils.data_processor import (
-    process_cities_ms
+    process_cities_ms,
+    process_matomo_summary,
+    process_page_urls,
+    identify_service_cards
 )
 
 # Importar Exportador
@@ -73,11 +76,19 @@ def run():
     # 4. Buscar e Processar Dados — Portal (Matomo)
     print("📉 Buscando dados do Matomo...")
     try:
+        # Overview
+        raw_matomo_overview = matomo_api.get_visits_summary("range", f"{start_date},{end_date}")
+        data_to_export["matomo_overview"] = process_matomo_summary(raw_matomo_overview)
+
         # Cidades MS
-        raw_matomo_cities = matomo_api.get_city("range", f"{start_date},{end_date}", site_id=config.MATOMO_SITE_ID)
+        raw_matomo_cities = matomo_api.get_city("range", f"{start_date},{end_date}")
         data_to_export["matomo_cities"] = process_cities_ms(raw_matomo_cities)
         
-        # Podemos adicionar mais métricas do Matomo conforme a necessidade
+        # Serviços (Cartas de Serviço)
+        raw_page_urls = matomo_api.get_page_urls("range", f"{start_date},{end_date}", limit=500)
+        df_pages = process_page_urls(raw_page_urls)
+        data_to_export["matomo_services"] = identify_service_cards(df_pages)
+
     except Exception as e:
         print(f"❌ Erro ao processar Matomo: {e}")
 

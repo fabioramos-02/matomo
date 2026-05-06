@@ -113,6 +113,33 @@ def render_ga_tab4_jornada(df_funnel):
             *   **Navegação (Telas):** Dos que ativaram, **{df_funnel_plot.iloc[2]['Usuários'] / df_funnel_plot.iloc[1]['Usuários']:.1%}** progrediram para ver ao menos uma funcionalidade.
             *   **Retenção (Engajamento):** Representa o público fiel. Temos **{_fmt(df_funnel_plot.iloc[3]['Usuários'])}** usuários que interagiram de forma contínua com o app.
             """)
+
+        # ── Funil de Abandono (Churn) ──────────────────────────────────────────
+        st.markdown("---")
+        st.subheader("📉 Funil de Abandono (Churn)")
+        st.markdown("Identifica em qual etapa os usuários estão deixando o aplicativo.")
+        
+        abandon_data = []
+        for i in range(len(df_funnel_plot) - 1):
+            atual = df_funnel_plot.iloc[i]
+            proximo = df_funnel_plot.iloc[i+1]
+            perda = atual["Usuários"] - proximo["Usuários"]
+            taxa_abandono = (perda / atual["Usuários"] * 100) if atual["Usuários"] > 0 else 0
+            abandon_data.append({
+                "Etapa": f"{atual['Etapa']} → {proximo['Etapa']}",
+                "Abandono (%)": round(taxa_abandono, 1),
+                "Usuários Perdidos": perda
+            })
+        
+        df_abandon = pd.DataFrame(abandon_data)
+        fig_abandon = px.bar(
+            df_abandon, x="Etapa", y="Abandono (%)", 
+            text="Abandono (%)", color="Abandono (%)",
+            color_continuous_scale="Reds"
+        )
+        fig_abandon.update_traces(texttemplate='%{text}%', textposition='outside')
+        fig_abandon.update_layout(yaxis_ticksuffix="%", coloraxis_showscale=False)
+        st.plotly_chart(fig_abandon, use_container_width=True)
     else:
         st.info("Dados de usuários únicos não disponíveis para gerar o funil.")
 

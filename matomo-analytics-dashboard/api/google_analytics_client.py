@@ -53,11 +53,11 @@ class GoogleAnalyticsAPI:
         # 1. Tentativa Completa (Mapa de Pontos)
         res = self._run_report(["city", "region", "country", "latitude", "longitude"], ["activeUsers"], start_date, end_date)
         if res: return res
-        
+
         # 2. Fallback Regional (Tabela Cidade/UF)
         res = self._run_report(["city", "region", "country"], ["activeUsers"], start_date, end_date)
         if res: return res
-        
+
         # 3. Fallback Global (Apenas País)
         return self._run_report(["country"], ["activeUsers"], start_date, end_date)
 
@@ -74,7 +74,12 @@ class GoogleAnalyticsAPI:
         return self._run_report(["eventName"], ["eventCount"], start_date, end_date)
 
     def get_overview(self, start_date: str, end_date: str):
-        return self._run_report(["newVsReturning"], ["activeUsers", "sessions", "screenPageViews"], start_date, end_date)
+        # userEngagementDuration = tempo total de engajamento (em segundos)
+        return self._run_report(
+            ["newVsReturning"], 
+            ["activeUsers", "sessions", "screenPageViews", "userEngagementDuration"], 
+            start_date, end_date
+        )
 
     def get_platform(self, start_date: str, end_date: str):
         return self._run_report(["platform", "operatingSystem"], ["activeUsers", "sessions"], start_date, end_date)

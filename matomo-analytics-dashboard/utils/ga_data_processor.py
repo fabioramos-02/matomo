@@ -49,38 +49,59 @@ _REGION_TO_UF = {
 }
 
 
+from utils.geo_constants import CITY_COORDS
+
 def process_ga_cities(data: list) -> pd.DataFrame:
     if not data:
         return pd.DataFrame()
     df = pd.DataFrame(data)
-    
+
     # Renomeação dinâmica (só renomeia o que existe)
     rename_map = {
-        "city": "Cidade", 
-        "region": "Região", 
+        "city": "Cidade",
+        "region": "Região",
         "country": "País",
-        "latitude": "lat", 
+        "latitude": "lat",
         "longitude": "lon",
         "activeUsers": "Visitas"
     }
     # Filtra o map para colunas presentes
     actual_rename = {k: v for k, v in rename_map.items() if k in df.columns}
     df = df.rename(columns=actual_rename)
-    
+
     df["Visitas"] = pd.to_numeric(df["Visitas"], errors="coerce").fillna(0).astype(int)
-    
+
     # Processa coordenadas se existirem
     if "lat" in df.columns:
         df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
     if "lon" in df.columns:
         df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
-    
+
+    # Fallback de Geocodificação Estática para Cidades de MS (quando GA4 não envia coordenadas)
+    def apply_geo_fallback(row):
+        # Se lat/lon já existem e são válidos, mantém
+        if pd.notna(row.get("lat")) and pd.notna(row.get("lon")):
+            return row["lat"], row["lon"]
+
+        # Tenta buscar no dicionário estático
+        cidade = row.get("Cidade")
+        if cidade in CITY_COORDS:
+            return CITY_COORDS[cidade]["lat"], CITY_COORDS[cidade]["lon"]
+
+        return row.get("lat"), row.get("lon")
+
+    # Garante que lat/lon existam antes de aplicar fallback
+    for col in ["lat", "lon"]:
+        if col not in df.columns:
+            df[col] = pd.NA
+
+    df[["lat", "lon"]] = df.apply(lambda r: pd.Series(apply_geo_fallback(r)), axis=1)
+
     # Garantia de colunas mínimas para evitar quebra no agrupamento/UI
     if "Cidade" not in df.columns:
         df["Cidade"] = "Global (País)"
     if "UF" not in df.columns:
-        df["UF"] = df.get("País", "Desconhecido")
-    
+        df["UF"] = df.get("País", "Desconhecido")    
     # Limpeza e Normalização
     df["Cidade"] = df["Cidade"].replace({"(not set)": "Desconhecido", "": "Desconhecido"}).fillna("Desconhecido")
     
@@ -97,11 +118,18 @@ def process_ga_cities(data: list) -> pd.DataFrame:
     
     # Agrupamento dinâmico
     agg_dict = {"Visitas": "sum"}
-    if "lat" in df.columns: agg_dict["lat"] = "mean"
-    if "lon" in df.columns: agg_dict["lon"] = "mean"
+    if "lat" in df.columns: 
+        agg_dict["lat"] = "mean"
+    if "lon" in df.columns: 
+        agg_dict["lon"] = "mean"
     
     group_cols = ["Cidade", "UF"]
     df = df.groupby(group_cols, as_index=False).agg(agg_dict)
+    
+    # Garante colunas mínimas para a UI não quebrar
+    for col in ["lat", "lon"]:
+        if col not in df.columns:
+            df[col] = pd.NA
     
     return df.sort_values("Visitas", ascending=False).reset_index(drop=True)
 
@@ -155,22 +183,50 @@ def process_ga_visit_time(data: list) -> pd.DataFrame:
 def process_ga_overview(data: list) -> dict:
     """Retorna dict com KPIs totais e DataFrame new vs returning."""
     if not data:
-        return {"total_users": 0, "total_sessions": 0, "total_views": 0, "retention_df": pd.DataFrame()}
+        return {
+            "total_users": 0, "total_sessions": 0, "total_views": 0, 
+            "avg_engagement": "0s", "retention_df": pd.DataFrame()
+        }
     df = pd.DataFrame(data)
-    for col in ["activeUsers", "sessions", "screenPageViews"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+    
+    # Lista base de colunas esperadas
+    metrics = ["activeUsers", "sessions", "screenPageViews", "userEngagementDuration", "averageSessionDuration"]
+    available_metrics = [m for m in metrics if m in df.columns]
+    
+    for col in available_metrics:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(float)
+    
     df = df.rename(columns={
         "newVsReturning": "Tipo",
         "activeUsers": "Usuários",
         "sessions": "Sessões",
         "screenPageViews": "Visualizações",
     })
+    
+    total_users = int(df["Usuários"].sum())
+    
+    # Cálculo do Tempo de Engajamento
+    # Se userEngagementDuration (segundos totais) existe e é > 0, usamos ele
+    # Caso contrário, tentamos usar averageSessionDuration (que já vem como média do GA4)
+    if "userEngagementDuration" in df.columns and df["userEngagementDuration"].sum() > 0:
+        total_engagement_sec = df["userEngagementDuration"].sum()
+        avg_sec = total_engagement_sec / total_users if total_users > 0 else 0
+    elif "averageSessionDuration" in df.columns:
+        avg_sec = df["averageSessionDuration"].mean()
+    else:
+        avg_sec = 0
+    
+    m, s = divmod(int(avg_sec), 60)
+    avg_engagement_str = f"{m} min {s} s" if m > 0 else f"{s} s"
+
     label_map = {"new": "Novos", "returning": "Recorrentes"}
     df["Tipo"] = df["Tipo"].map(label_map).fillna(df["Tipo"])
+    
     return {
-        "total_users": int(df["Usuários"].sum()),
+        "total_users": total_users,
         "total_sessions": int(df["Sessões"].sum()),
         "total_views": int(df["Visualizações"].sum()),
+        "avg_engagement": avg_engagement_str,
         "retention_df": df[["Tipo", "Usuários", "Sessões"]].reset_index(drop=True),
     }
 

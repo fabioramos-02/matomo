@@ -14,15 +14,18 @@ def render_ga_tab1_overview(overview: dict, df_platform, df_funnel):
             novos_downloads = int(df_fo.iloc[0]["Usuários"])
 
     # KPIs
-    col0, col1, col2, col3 = st.columns(4)
+    col0, col1, col2, col3, col4 = st.columns(5)
     col0.metric("📥 Novos Downloads", f"{novos_downloads:,}".replace(",", "."))
     col1.metric("👤 Usuários Ativos", f"{overview['total_users']:,}".replace(",", "."))
     col2.metric("📱 Sessões", f"{overview['total_sessions']:,}".replace(",", "."))
     col3.metric("🖥️ Visualizações de Tela", f"{overview['total_views']:,}".replace(",", "."))
+    col4.metric("⏱️ Engajamento Médio", overview.get("avg_engagement", "0s"))
 
     if overview["total_sessions"] > 0:
         telas_por_sessao = round(overview["total_views"] / overview["total_sessions"], 1)
         col1.caption(f"Telas por sessão: **{telas_por_sessao}**")
+    
+    col4.caption("Tempo médio por usuário ativo")
 
     st.markdown("---")
 
@@ -40,7 +43,6 @@ def render_ga_tab1_overview(overview: dict, df_platform, df_funnel):
             fig.update_traces(textposition="inside", textinfo="percent+label")
             fig.update_layout(showlegend=False, margin=dict(t=20, b=20))
             st.plotly_chart(fig, use_container_width=True)
-            st.dataframe(df_ret, hide_index=True, use_container_width=True)
         else:
             st.info("Sem dados de retenção para o período.")
 
@@ -61,6 +63,5 @@ def render_ga_tab1_overview(overview: dict, df_platform, df_funnel):
             # Detalhamento por OS
             df_os = df_platform.groupby("Sistema", as_index=False)["Usuários"].sum()
             df_os = df_os[df_os["Sistema"] != "(not set)"].sort_values("Usuários", ascending=False)
-            st.dataframe(df_os.rename(columns={"Sistema": "Sistema Operacional"}), hide_index=True, use_container_width=True)
         else:
             st.info("Sem dados de plataforma para o período.")

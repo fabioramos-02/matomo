@@ -128,12 +128,66 @@ class GoogleAnalyticsAPI:
     def get_funnel_events(self, start_date: str, end_date: str):
         return self._run_report(["eventName"], ["eventCount", "totalUsers"], start_date, end_date)
 
+    # Dimensões candidatas para identificar telas/serviços (ordem de preferência)
+    _SCREEN_DIM_CANDIDATES = [
+        "unifiedScreenName",
+        "customEvent:unified_screen_name",
+        "screenPageTitle",
+        "screenName",
+        "pageTitle"
+    ]
+    _EXCLUIR_TELA = {"(not set)", "", "Educação", "Segurança", "Trânsito", "Home", "(other)"}
+
+    def _get_screen_dim(self, start_date: str, end_date: str) -> tuple[str, list]:
+        """Tenta encontrar qual dimensão contém os nomes dos serviços."""
+        # Silenciamos os prints de erro durante a busca para não poluir o log
+        for dim in self._SCREEN_DIM_CANDIDATES:
+            try:
+                request = RunReportRequest(
+                    property=self.property,
+                    dimensions=[Dimension(name=dim), Dimension(name="eventName")],
+                    metrics=[Metric(name="eventCount")],
+                    date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+                    limit=100,
+                )
+                response = self.client.run_report(request)
+                rows = []
+                has_data = False
+                for row in response.rows:
+                    val = row.dimension_values[0].value
+                    evt = row.dimension_values[1].value
+                    count = int(row.metric_values[0].value)
+                    
+                    rows.append({dim: val, "eventName": evt, "eventCount": count})
+                    if val not in self._EXCLUIR_TELA and count > 0:
+                        has_data = True
+                
+                if has_data:
+                    print(f"✨ Dimensão de serviço detectada: {dim}")
+                    return dim, rows
+            except Exception:
+                continue
+        
+        print("⚠️ Nenhuma dimensão de serviço com dados foi encontrada.")
+        return "pageTitle", []
+
     def get_services(self, start_date: str, end_date: str):
-        # unifiedPageScreenName é o mapeamento técnico para 'Título da página e nome da tela'
-        return self._run_report(["unifiedPageScreenName", "eventName"], ["eventCount"], start_date, end_date)
+        """Funcionalidades internas: use_feature × melhor dimensão de tela."""
+        dim, rows = self._get_screen_dim(start_date, end_date)
+        # Normalizamos o nome da coluna para o processador
+        for r in rows:
+            if dim != "pageTitle":
+                r["pageTitle"] = r.pop(dim, "(not set)")
+        return rows
 
     def get_services_trend(self, start_date: str, end_date: str):
-        return self._run_report(["pageTitle", "date", "eventName"], ["eventCount"], start_date, end_date)
+        """Tendência temporal: use_feature por melhor dimensão + date."""
+        dim, _ = self._get_screen_dim(start_date, end_date)
+        rows = self._run_report([dim, "date", "eventName"], ["eventCount"], start_date, end_date)
+        for r in rows:
+            if dim != "pageTitle":
+                r["pageTitle"] = r.pop(dim, "(not set)")
+        return rows
 
     def get_external_links(self, start_date: str, end_date: str):
         try:

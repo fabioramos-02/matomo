@@ -3,24 +3,23 @@ import re
 
 def process_page_urls(data):
     """Transforma a resposta JSON de getPageUrls em um DataFrame plano."""
+    if not data:
+        print("⚠️ process_page_urls: Dados vazios.")
+        return pd.DataFrame()
+    
     rows = []
     
     def extract_nodes(nodes, prefix=""):
         for node in nodes:
             label = node.get('label', '')
-            # O label retornado pela API muitas vezes é o path da URL
             url_path = f"{prefix}{label}"
-            
             rows.append({
                 'URL': url_path,
                 'Visitas': node.get('nb_visits', 0),
                 'Tempo_Medio': node.get('avg_time_on_page', 0),
                 'Taxa_Rejeicao': node.get('bounce_rate', '0%')
             })
-            
-            # Se houver subpáginas, extrai recursivamente
             if 'subtable' in node and isinstance(node['subtable'], list):
-                # Alguns labels vem com '/' no começo, então ajustamos o prefixo
                 new_prefix = url_path if url_path.endswith('/') else f"{url_path}/"
                 extract_nodes(node['subtable'], new_prefix)
 
@@ -30,6 +29,7 @@ def process_page_urls(data):
     df = pd.DataFrame(rows)
     if not df.empty:
         df = df.sort_values(by='Visitas', ascending=False).reset_index(drop=True)
+    print(f"📊 process_page_urls: {len(df)} URLs processadas.")
     return df
 
 # Mapeamento oficial de categorias do Portal de Serviços
@@ -59,39 +59,25 @@ CATEGORIAS_MAPEAMENTO = {
 }
 
 def identify_service_cards(df):
-    """
-    Filtra o DataFrame para encontrar "Cartas de Serviço" baseadas nas categorias oficiais.
-    Normaliza os nomes das categorias e dos serviços.
-    """
+    """Filtra o DataFrame para encontrar 'Cartas de Serviço'."""
     if df.empty:
         return df
         
     rows = []
-    
     for _, row in df.iterrows():
         url = row['URL']
         parts = [p for p in url.split('/') if p]
-        
-        # Padrão de serviço tem pelo menos Categoria e Slug
         if len(parts) >= 2:
             categoria_raw = parts[0].lower()
             slug_raw = parts[1]
-            
-            # Validação rigorosa: A categoria da URL DEVE existir no nosso dicionário oficial
             if categoria_raw in CATEGORIAS_MAPEAMENTO:
                 categoria_nome = CATEGORIAS_MAPEAMENTO[categoria_raw]
-                
-                # Regras adicionais: o slug precisa ter hifen e não pode ser arquivo
                 has_hyphen = '-' in slug_raw
                 no_file_ext = not re.search(r'\.(jpg|png|pdf|css|js)$', slug_raw.lower())
-                
                 if has_hyphen and no_file_ext:
-                    # Normaliza o nome do serviço (remove os IDs no final e troca hifen por espaço)
                     servico_nome = re.sub(r'\d+$', '', slug_raw)
                     servico_nome = servico_nome.replace('-', ' ').title()
-                    
                     link = f"https://www.ms.gov.br/{categoria_raw}/{slug_raw}"
-                    
                     rows.append({
                         'URL_Original': url,
                         'Categoria': categoria_nome,
@@ -101,11 +87,11 @@ def identify_service_cards(df):
                     })
 
     service_df = pd.DataFrame(rows)
-    # Se houver URLs duplicadas (ex: /cat/slug e /cat/slug/imprimir), agrupa pelo link principal
     if not service_df.empty:
         service_df = service_df.groupby(['Categoria', 'Nome do Serviço', 'Link'], as_index=False).agg({'Visitas': 'sum', 'URL_Original': 'first'})
         service_df = service_df.sort_values(by='Visitas', ascending=False).reset_index(drop=True)
         
+    print(f"🃏 identify_service_cards: {len(service_df)} cartas de serviço identificadas.")
     return service_df
 
 def process_search_keywords(data):
@@ -142,18 +128,15 @@ def process_transitions(data):
 def process_cities_ms(data):
     """Processa a lista de cidades e filtra apenas as do Mato Grosso do Sul."""
     if not data or not isinstance(data, list):
+        print("⚠️ process_cities_ms: Dados vazios ou inválidos.")
         return pd.DataFrame()
     
     rows = []
     for item in data:
         label = item.get('label', '')
-        # Se for do MS, o label normalmente vem como "Cidade, Mato Grosso do Sul, Brazil"
         if "Mato Grosso do Sul" in label:
-            # Pega só o nome da cidade, antes da vírgula
             city_name = label.split(",")[0].strip()
-            # Remove parênteses como "Campo Grande (Jardim Veraneio)" -> "Campo Grande"
             city_name = re.sub(r'\s*\(.*?\)', '', city_name).strip()
-            
             rows.append({
                 'Cidade': city_name,
                 'Visitas': item.get('nb_visits', 0)
@@ -161,9 +144,9 @@ def process_cities_ms(data):
     
     df = pd.DataFrame(rows)
     if not df.empty:
-        # Agrupa para somar cidades normalizadas iguais
         df = df.groupby('Cidade', as_index=False)['Visitas'].sum()
         df = df.sort_values(by='Visitas', ascending=False).reset_index(drop=True)
+    print(f"📍 process_cities_ms: {len(df)} cidades do MS processadas.")
     return df
 
 def process_visit_time(data):

@@ -48,11 +48,12 @@ class GoogleAnalyticsAPI:
             new_metrics = list(metrics)
             changed = False
 
-            # Mapa de substituições comuns
+            # Mapa de substituições comuns para dimensões de tela/página
             replacements = {
                 "screenPageTitle": "pageTitle",
                 "unifiedScreenName": "pageTitle",
                 "screenName": "pageTitle",
+                "unifiedPageScreenName": "pageTitle",
                 "averageEngagementTime": "userEngagementDuration",
             }
 
@@ -94,13 +95,13 @@ class GoogleAnalyticsAPI:
             return []
 
     def get_screen_views(self, start_date: str, end_date: str):
-        return self._run_report(["screenPageTitle", "pagePath"], ["screenPageViews"], start_date, end_date)
+        return self._run_report(["pageTitle", "pagePath"], ["screenPageViews"], start_date, end_date)
 
     def get_search_keywords(self, start_date: str, end_date: str):
         return self._run_report(["searchTerm"], ["eventCount"], start_date, end_date)
 
     def get_geography(self, start_date: str, end_date: str):
-        return self._run_report(["city", "region", "country", "latitude", "longitude"], ["activeUsers"], start_date, end_date)
+        return self._run_report(["city", "region", "country"], ["activeUsers"], start_date, end_date)
 
     def get_country_map(self, start_date: str, end_date: str):
         return self._run_report(["country"], ["activeUsers"], start_date, end_date)
@@ -117,7 +118,7 @@ class GoogleAnalyticsAPI:
     def get_overview(self, start_date: str, end_date: str):
         return self._run_report(
             ["newVsReturning"], 
-            ["activeUsers", "sessions", "screenPageViews", "userEngagementDuration", "averageEngagementTime"], 
+            ["activeUsers", "sessions", "screenPageViews", "userEngagementDuration"], 
             start_date, end_date
         )
 
@@ -128,10 +129,11 @@ class GoogleAnalyticsAPI:
         return self._run_report(["eventName"], ["eventCount", "totalUsers"], start_date, end_date)
 
     def get_services(self, start_date: str, end_date: str):
-        return self._run_report(["screenPageTitle", "eventName"], ["eventCount"], start_date, end_date)
+        # unifiedPageScreenName é o mapeamento técnico para 'Título da página e nome da tela'
+        return self._run_report(["unifiedPageScreenName", "eventName"], ["eventCount"], start_date, end_date)
 
     def get_services_trend(self, start_date: str, end_date: str):
-        return self._run_report(["screenPageTitle", "date", "eventName"], ["eventCount"], start_date, end_date)
+        return self._run_report(["pageTitle", "date", "eventName"], ["eventCount"], start_date, end_date)
 
     def get_external_links(self, start_date: str, end_date: str):
         try:

@@ -261,18 +261,13 @@ def process_ga_overview(data: list) -> dict:
     total_users = int(df["Usuários"].sum())
     
     # Cálculo do Tempo de Engajamento
-    # 1. Prioriza averageEngagementTime (já vem calculado por usuário ativo no GA4)
-    # 2. Fallback para userEngagementDuration / activeUsers
-    # 3. Fallback para averageSessionDuration
-    if "averageEngagementTime" in df.columns and df["averageEngagementTime"].sum() > 0:
-        avg_sec = df["averageEngagementTime"].mean()
-    elif "userEngagementDuration" in df.columns and df["userEngagementDuration"].sum() > 0:
-        total_engagement_sec = df["userEngagementDuration"].sum()
-        avg_sec = total_engagement_sec / total_users if total_users > 0 else 0
+    # 1. Prioriza userEngagementDuration / activeUsers (Métrica padrão GA4)
+    # 2. Fallback para averageSessionDuration
+    avg_sec = 0
+    if "userEngagementDuration" in df.columns and total_users > 0:
+        avg_sec = df["userEngagementDuration"].sum() / total_users
     elif "averageSessionDuration" in df.columns:
         avg_sec = df["averageSessionDuration"].mean()
-    else:
-        avg_sec = 0
     
     m, s = divmod(int(avg_sec), 60)
     avg_engagement_str = f"{m} min {s} s" if m > 0 else f"{s} s"
@@ -315,43 +310,55 @@ def process_ga_funnel(data: list) -> pd.DataFrame:
     return pd.concat([sistema, customizados], ignore_index=True)
 
 
-_SERVICOS_EXCLUIR = {"(not set)", "", "Educação", "Segurança", "Trânsito", "Home"}
+_SERVICOS_EXCLUIR = {"(not set)", "", "Home"}
 _EVENTO_SERVICO = "use_feature"
 
 
 def process_ga_services(data: list) -> pd.DataFrame:
-    """Segmento 'Funcionalidade' do GA4. 
-    Tenta capturar via screenPageTitle/pageTitle.
-    Não filtra estritamente por use_feature para garantir dados mesmo em implementações padrão."""
+    """Segmento 'Funcionalidade' do GA4."""
     if not data:
+        print("⚠️ process_ga_services: Dados de entrada vazios.")
         return pd.DataFrame()
     df = pd.DataFrame(data)
     
-    # Renomeação flexível (suporta fallback de screenPageTitle -> pageTitle)
-    if "screenPageTitle" in df.columns:
-        df = df.rename(columns={"screenPageTitle": "Serviço"})
+    # Renomeação flexível
+    if "screenName" in df.columns:
+        df = df.rename(columns={"screenName": "Serviço"})
     elif "pageTitle" in df.columns:
         df = df.rename(columns={"pageTitle": "Serviço"})
+    elif "screenPageTitle" in df.columns:
+        df = df.rename(columns={"screenPageTitle": "Serviço"})
         
-    metric_col = "eventCount" if "eventCount" in df.columns else "screenPageViews" if "screenPageViews" in df.columns else None
-    
-    if metric_col:
+    metric_col = "eventCount" if "eventCount" in df.columns else "screenPageViews" if "screenPageViews" in df.columns else "activeUsers"
+    if metric_col in df.columns:
         df["Acessos"] = pd.to_numeric(df[metric_col], errors="coerce").fillna(0).astype(int)
     else:
         df["Acessos"] = 0
         
     if "Serviço" not in df.columns:
+        print(f"⚠️ process_ga_services: Coluna de Serviço não encontrada. Colunas disponíveis: {df.columns.tolist()}")
         return pd.DataFrame()
 
-    # Se existir use_feature, prioriza ele, senão pega tudo que não for ruído
-    if "eventName" in df.columns and _EVENTO_SERVICO in df["eventName"].values:
-        df = df[df["eventName"] == _EVENTO_SERVICO]
+    # Limpeza básica antes do filtro de eventos (remove (other), (not set) e vazios)
+    df = df[df["Serviço"].notna() & ~df["Serviço"].isin(_SERVICOS_EXCLUIR | {"(other)"})]
+    
+    # Filtro inteligente de eventos (menos restritivo)
+    # Se tivermos 'use_feature', focamos nele. 
+    # Caso contrário, mantemos todos os eventos que não sejam ruído para bater com o Explorations.
+    if "eventName" in df.columns:
+        if _EVENTO_SERVICO in df["eventName"].values:
+            df = df[df["eventName"] == _EVENTO_SERVICO]
+        else:
+            # Exclui apenas eventos puramente técnicos se não houver use_feature
+            tecnicos = {"session_start", "first_open", "user_engagement"}
+            df = df[~df["eventName"].isin(tecnicos)]
 
-    df = df[df["Serviço"].notna() & ~df["Serviço"].isin(_SERVICOS_EXCLUIR)]
     df = df.groupby("Serviço", as_index=False)["Acessos"].sum()
     df = df.sort_values("Acessos", ascending=False).reset_index(drop=True)
+    
     total = df["Acessos"].sum()
     df["%"] = (df["Acessos"] / total * 100).round(1) if total > 0 else 0.0
+    print(f"✅ process_ga_services: {len(df)} serviços processados (Total: {total}).")
     return df
 
 
@@ -362,10 +369,12 @@ def process_ga_services_trend(data: list, top_services: list) -> pd.DataFrame:
     df = pd.DataFrame(data)
     
     # Renomeação flexível
-    if "screenPageTitle" in df.columns:
-        df = df.rename(columns={"screenPageTitle": "Serviço"})
+    if "unifiedPageScreenName" in df.columns:
+        df = df.rename(columns={"unifiedPageScreenName": "Serviço"})
     elif "pageTitle" in df.columns:
         df = df.rename(columns={"pageTitle": "Serviço"})
+    elif "screenPageTitle" in df.columns:
+        df = df.rename(columns={"screenPageTitle": "Serviço"})
         
     metric_col = "eventCount" if "eventCount" in df.columns else "screenPageViews" if "screenPageViews" in df.columns else None
     

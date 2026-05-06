@@ -34,15 +34,34 @@ class MatomoAPI:
 
     def get_data(self, method, period=None, date=None, extra_params=None, site_id=None, timeout=90):
         url = self._build_url(method, period, date, extra_params, site_id)
+        # Log de rastreabilidade
+        url_masked = url.replace(self.token, "********") if self.token else url
+        print(f"🌐 Matomo Request: {method} | Period: {period} | Date: {date} | Site: {site_id or self.site_id}")
+        
         try:
+            import time
+            start_time = time.time()
             response = requests.get(url, timeout=timeout)
+            duration = round(time.time() - start_time, 2)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            
+            # Log de sucesso com resumo do payload
+            if isinstance(data, list):
+                summary = f"{len(data)} itens"
+            elif isinstance(data, dict):
+                summary = f"Dict com chaves: {list(data.keys())[:5]}"
+            else:
+                summary = "Tipo primitivo"
+                
+            print(f"✅ Matomo Response: {method} | {duration}s | {summary}")
+            return data
+            
         except requests.exceptions.Timeout:
-            print(f"Timeout na requisição para {method} (limite: {timeout}s)")
+            print(f"❌ Timeout Matomo: {method} (limite: {timeout}s)")
             return None
         except requests.exceptions.RequestException as e:
-            print(f"Erro na requisição para {method}: {e}")
+            print(f"❌ Erro Matomo: {method} | {e}")
             return []
 
     def get_sites(self):

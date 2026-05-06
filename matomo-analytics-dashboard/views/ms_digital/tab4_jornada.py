@@ -140,6 +140,20 @@ def render_ga_tab4_jornada(df_funnel):
         fig_abandon.update_traces(texttemplate='%{text}%', textposition='outside')
         fig_abandon.update_layout(yaxis_ticksuffix="%", coloraxis_showscale=False)
         st.plotly_chart(fig_abandon, width="stretch")
+
+        # ── Storytelling do Churn (Para a chefe) ──────────────────────────────
+        with st.expander("💡 Onde estamos perdendo mais usuários?", expanded=True):
+            # Identifica o maior gargalo
+            maior_perda = df_abandon.sort_values("Abandono (%)", ascending=False).iloc[0]
+            
+            st.markdown(f"""
+            O ponto crítico de abandono hoje é na transição **{maior_perda['Etapa']}**, onde perdemos **{maior_perda['Abandono (%)']}%** dos usuários (**{_fmt(maior_perda['Usuários Perdidos'])} pessoas**).
+            
+            *   **Interpretando o número:** 
+                *   Se a maior perda é em **Aquisição → Ativação**: Indica que as pessoas baixam o app mas não chegam a abrir ou logar (possível problema técnico no login ou tamanho do app).
+                *   Se a maior perda é em **Ativação → Navegação**: O usuário abre o app mas não encontra o que precisa ou acha a interface confusa.
+                *   Se a maior perda é em **Navegação → Engajamento**: O usuário usa o app pontualmente mas não cria o hábito de retorno.
+            """)
     else:
         st.info("Dados de usuários únicos não disponíveis para gerar o funil.")
 

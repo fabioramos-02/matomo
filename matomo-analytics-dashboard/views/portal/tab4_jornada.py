@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
+from datetime import datetime, date as dt_date
+from collections import defaultdict
 from utils.data_loaders import load_transitions_data, load_outlinks_data, load_entry_pages_data
 
 def _range_is_long(date_str, threshold_days=60):
@@ -38,6 +39,38 @@ def _render_tab4_ga4(df_events):
         st.dataframe(df_show[["#", "Evento", "Acessos"]], hide_index=True, width="stretch")
 
     st.info("💡 Para análise de funil e sequência de telas, acesse diretamente o GA4 em Analytics > Exploração > Funil.")
+
+
+def _load_transitions_annual(api, date_str, url, site_id):
+    """Para period=year, agrega transições mês a mês para contornar timeout do servidor."""
+    try:
+        year = int(date_str[:4])
+    except (ValueError, TypeError):
+        return None
+
+    today = dt_date.today()
+    hits = defaultdict(int)
+    progress = st.progress(0, text="Carregando transições mês a mês...")
+
+    for i, month in enumerate(range(1, 13)):
+        month_date = f"{year}-{month:02d}-01"
+        if dt_date(year, month, 1) > today:
+            break
+        result = load_transitions_data(api, "month", month_date, url, site_id)
+        if result and result.get("followingPages"):
+            for page in result["followingPages"]:
+                label = page.get("label", "")
+                count = page.get("hits", page.get("referrals", 0))
+                hits[label] += count
+        progress.progress((i + 1) / 12, text=f"Mês {month:02d}/{year}...")
+
+    progress.empty()
+
+    if not hits:
+        return None
+
+    following = [{"label": k, "referrals": v} for k, v in sorted(hits.items(), key=lambda x: -x[1])]
+    return {"followingPages": following}
 
 
 def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Portal (Matomo)", df_events=None):
@@ -97,9 +130,12 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Po
     url_home = "https://www.ms.gov.br/"
 
     # Períodos pesados exigem confirmação do usuário para evitar timeout silencioso
-    is_heavy_period = period in ("year",) or (period == "range" and "," in date and _range_is_long(date))
+    is_heavy_period = period == "range" and "," in date and _range_is_long(date)
 
-    if is_heavy_period:
+    if period == "year":
+        st.info("📅 Período anual: carregando mês a mês para contornar timeout do servidor (~1-2 min).")
+        carregar = st.button("Carregar análise anual (mês a mês)", key="btn_transitions")
+    elif is_heavy_period:
         st.info("⚠️ Período longo selecionado. A análise de transições pode demorar até 3 minutos.")
         carregar = st.button("Carregar análise de macro-fluxo (pode ser lento)", key="btn_transitions")
     else:
@@ -114,7 +150,9 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Po
             return
 
         df_trans = pd.DataFrame(transitions['followingPages'])
-        df_trans = df_trans.rename(columns={'label': 'Página de Destino', 'referrals': 'Acessos'})
+        # followingPages usa 'hits' na API nativa e 'referrals' em alguns contextos — normalizar
+        col_acessos = 'hits' if 'hits' in df_trans.columns else 'referrals'
+        df_trans = df_trans.rename(columns={'label': 'Página de Destino', col_acessos: 'Acessos'})
         df_trans['Página de Destino'] = df_trans['Página de Destino'].str.replace('ms.gov.br', '', regex=False)
 
         def classificar_jornada(url):
@@ -149,6 +187,9 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Po
             )
 
     if carregar:
-        with st.spinner("Analisando macro-fluxo... (até 3 min para períodos longos)"):
-            transitions = load_transitions_data(api, period, date, url_home, selected_site_id)
+        if period == "year":
+            transitions = _load_transitions_annual(api, date, url_home, selected_site_id)
+        else:
+            with st.spinner("Analisando macro-fluxo... (até 3 min para períodos longos)"):
+                transitions = load_transitions_data(api, period, date, url_home, selected_site_id)
         _render_transitions(transitions)

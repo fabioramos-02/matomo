@@ -55,6 +55,10 @@ def get_api():
         st.stop()
     return MatomoAPI(base_url=MATOMO_URL, token=MATOMO_TOKEN, site_id=MATOMO_SITE_ID)
 
+@st.cache_data(ttl=3600)
+def _load_sites(_api):
+    return _api.get_sites()
+
 
 def get_ga_api():
     if not GOOGLE_CLIENT_ID or not GOOGLE_REFRESH_TOKEN:
@@ -103,7 +107,7 @@ selected_site_id = int(MATOMO_SITE_ID)
 if fonte == "Portal (Matomo)":
     api = get_api()
     with st.spinner("Carregando sites..."):
-        sites_data = api.get_sites()
+        sites_data = _load_sites(api)
     if not sites_data:
         st.sidebar.error("Erro ao buscar sites.")
         st.stop()

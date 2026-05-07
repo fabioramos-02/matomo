@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+from urllib.parse import unquote
 
 def process_page_urls(data):
     """Transforma a resposta JSON de getPageUrls em um DataFrame plano."""
@@ -98,7 +99,7 @@ def process_search_keywords(data):
     """Transforma a resposta de SiteSearch em um DataFrame."""
     if not data or not isinstance(data, list):
         return pd.DataFrame()
-        
+
     df = pd.DataFrame(data)
     if 'label' in df.columns and 'nb_visits' in df.columns:
         df = df[['label', 'nb_visits']].rename(columns={'label': 'Palavra-chave', 'nb_visits': 'Buscas'})
@@ -106,6 +107,33 @@ def process_search_keywords(data):
         df = df[~df['Palavra-chave'].str.startswith('/')]
         return df.head(20)
     return pd.DataFrame()
+
+def extract_search_from_page_urls(df_pages):
+    """Extrai termos de busca de URLs /buscar/q=* ou /q=* do portal ms.gov.br."""
+    if df_pages is None or df_pages.empty:
+        return pd.DataFrame()
+
+    mask = df_pages['URL'].str.contains(r'(?:buscar/)?q=', regex=True, na=False)
+    df_q = df_pages[mask].copy()
+
+    def extrair_termo(url):
+        m = re.search(r'[?/]q=([^&/]+)', url)
+        if m:
+            return unquote(m.group(1)).strip().lower()
+        return None
+
+    df_q['Palavra-chave'] = df_q['URL'].apply(extrair_termo)
+    df_q = df_q.dropna(subset=['Palavra-chave'])
+    df_q = df_q[df_q['Palavra-chave'] != '']
+
+    if df_q.empty:
+        return pd.DataFrame()
+
+    result = df_q.groupby('Palavra-chave', as_index=False)['Visitas'].sum()
+    result = result.rename(columns={'Visitas': 'Buscas'})
+    result = result.sort_values('Buscas', ascending=False).reset_index(drop=True)
+    print(f"🔍 extract_search_from_page_urls: {len(result)} termos de busca extraídos de URLs.")
+    return result
 
 def process_transitions(data):
     """Processa os dados de transição de uma página para entender a jornada."""

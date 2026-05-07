@@ -1,14 +1,16 @@
 
+import pandas as pd
 import streamlit as st
 import json
 import urllib.request
 from utils.data_processor import (
-    process_page_urls, 
-    process_search_keywords, 
+    process_page_urls,
+    process_search_keywords,
+    extract_search_from_page_urls,
     process_transitions,
-    process_cities_ms, 
-    process_visit_time, 
-    process_browsers, 
+    process_cities_ms,
+    process_visit_time,
+    process_browsers,
     process_device_types
 )
 
@@ -19,8 +21,22 @@ def load_page_data(_api, p, d, sid):
 
 @st.cache_data(ttl=3600)
 def load_search_data(_api, p, d, sid):
-    data = _api.get_site_search_keywords(p, d, site_id=sid, limit=100)
-    return process_search_keywords(data)
+    # Fonte 1: SiteSearch nativo do Matomo
+    raw = _api.get_site_search_keywords(p, d, site_id=sid, limit=100)
+    df_site_search = process_search_keywords(raw)
+
+    # Fonte 2: chamada dedicada flat=1 + filter_pattern=q= — pega TODOS os termos sem truncar
+    raw_q = _api.get_search_page_urls(p, d, site_id=sid)
+    df_url_search = extract_search_from_page_urls(
+        process_page_urls(raw_q) if isinstance(raw_q, list) else pd.DataFrame()
+    )
+
+    combined = pd.concat([df_site_search, df_url_search], ignore_index=True)
+    if combined.empty:
+        return combined
+    combined = combined.groupby('Palavra-chave', as_index=False)['Buscas'].sum()
+    combined = combined.sort_values('Buscas', ascending=False).reset_index(drop=True)
+    return combined
 
 @st.cache_data(ttl=3600)
 def load_transitions_data(_api, p, d, url, sid):

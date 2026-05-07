@@ -122,6 +122,7 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Po
             parts = [p for p in url.split('/') if p]
             if len(parts) == 0: return 'Recargas/Outros'
             first = parts[0].lower()
+            if first == 'buscar' or 'q=' in url: return 'Busca Interna no Portal'
             if first in ['workspace', 'login']: return 'Acesso a Sistemas (Login/Workspace)'
             if first in ['noticias']: return 'Notícias'
             if len(parts) == 1: return 'Exploração por Categoria/Órgão'

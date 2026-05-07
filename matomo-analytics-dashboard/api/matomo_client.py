@@ -73,6 +73,15 @@ class MatomoAPI:
     def get_site_search_keywords(self, period, date, site_id=None, limit=50):
         return self.get_data('Actions.getSiteSearchKeywords', period, date, {'filter_limit': limit}, site_id)
 
+    def get_search_page_urls(self, period, date, site_id=None):
+        """Todas as URLs do portal sem limite (expanded=1, filter_limit=-1) para extração de q=."""
+        return self.get_data(
+            'Actions.getPageUrls',
+            period, date,
+            {'filter_limit': -1},
+            site_id
+        )
+
     def get_transitions(self, period, date, page_url, site_id=None):
         return self.get_data(
             'Transitions.getTransitionsForPageUrl',

@@ -3,7 +3,7 @@ import plotly.express as px
 
 def render_tab2_busca(df_search):
     st.header("Intenção de Busca no Portal")
-    st.markdown("O que o cidadão digitou na **lupa** do site.")
+    st.markdown("O que o cidadão buscou na **lupa** do site — capturado via SiteSearch e URLs `/buscar/q=*`.")
     if not df_search.empty:
         col1, col2 = st.columns([2, 1])
         with col1:

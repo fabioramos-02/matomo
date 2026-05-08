@@ -11,7 +11,8 @@ from utils.data_processor import (
     process_cities_ms,
     process_visit_time,
     process_browsers,
-    process_device_types
+    process_device_types,
+    process_services_trend,
 )
 
 @st.cache_data(ttl=3600)
@@ -76,6 +77,29 @@ def load_last_visits_data(_api, p, d, sid, segment):
 @st.cache_data(ttl=3600)
 def load_visits_summary_data(_api, p, d, sid):
     return _api.get_visits_summary(p, d, site_id=sid)
+
+@st.cache_data(ttl=3600)
+def load_services_trend_daily(_api, start_date, end_date, sid, top_services):
+    """Tendência diária — funciona somente para ranges ≤60 dias."""
+    raw = _api.get_page_urls_trend(start_date, end_date, site_id=sid, granularity='day')
+    if not raw or not isinstance(raw, dict):
+        return pd.DataFrame()
+    return process_services_trend(raw, list(top_services))
+
+
+@st.cache_data(ttl=3600)
+def load_service_cards_month(_api, month_date, sid, top_services):
+    """Cartas de serviço para um único mês — cacheável individualmente."""
+    from utils.data_processor import identify_service_cards
+    raw = _api.get_page_urls('month', month_date, site_id=sid, limit=100)
+    df = process_page_urls(raw)
+    if df.empty:
+        return []
+    df_cards = identify_service_cards(df)
+    top_set = set(top_services)
+    df_top = df_cards[df_cards['Nome do Serviço'].isin(top_set)]
+    return df_top[['Nome do Serviço', 'Visitas']].to_dict('records')
+
 
 @st.cache_data(ttl=86400)
 def load_ms_geojson():

@@ -15,7 +15,47 @@ from utils.data_loaders import (
     load_devices_data,
     load_ms_geojson,
     load_visits_summary_data,
+    load_services_trend_daily,
+    load_service_cards_month,
 )
+from utils.data_processor import identify_service_cards
+
+
+def _load_trend_monthly_chunks(api, start_date, end_date, top5, sid):
+    """Chunking mensal para ranges >60 dias. Cada mês é cacheado individualmente."""
+    start = dt_date.fromisoformat(start_date)
+    end = dt_date.fromisoformat(end_date)
+    today = dt_date.today()
+
+    months = []
+    cur = start.replace(day=1)
+    while cur <= end and cur <= today:
+        months.append(cur)
+        m, y = cur.month + 1, cur.year
+        if m > 12:
+            m, y = 1, y + 1
+        cur = dt_date(y, m, 1)
+
+    if not months:
+        return pd.DataFrame()
+
+    rows = []
+    progress = st.progress(0, text=f"Carregando tendência: 0/{len(months)} meses...")
+    for i, month_start in enumerate(months):
+        month_str = month_start.strftime("%Y-%m-%d")
+        records = load_service_cards_month(api, month_str, sid, top5)
+        for rec in records:
+            rows.append({
+                'Data': pd.to_datetime(month_str),
+                'Serviço': rec['Nome do Serviço'],
+                'Visitas': rec['Visitas'],
+            })
+        progress.progress((i + 1) / len(months), text=f"Carregando tendência: {i+1}/{len(months)} meses...")
+    progress.empty()
+
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).sort_values(['Data', 'Serviço']).reset_index(drop=True)
 
 # Loaders GA4
 from utils.ga_data_loaders import (
@@ -177,6 +217,24 @@ if fonte == "Portal (Matomo)":
         st.error("Nenhum dado retornado do Matomo.")
         st.stop()
 
+    matomo_start, matomo_end = to_ga4_date_range(period, date)
+    df_services_trend = pd.DataFrame()
+    trend_granularity = 'day'
+
+    df_svc_all = identify_service_cards(df_pages)
+    top5_matomo = tuple(df_svc_all['Nome do Serviço'].head(5).tolist()) if not df_svc_all.empty else ()
+
+    if period != "day" and matomo_start != matomo_end and top5_matomo:
+        _delta = (dt_date.fromisoformat(matomo_end) - dt_date.fromisoformat(matomo_start)).days
+        if _delta <= 60:
+            trend_granularity = 'day'
+            with st.spinner("Carregando evolução temporal dos serviços..."):
+                df_services_trend = load_services_trend_daily(api, matomo_start, matomo_end, selected_site_id, top5_matomo)
+        elif _delta <= 730:
+            trend_granularity = 'month'
+            df_services_trend = _load_trend_monthly_chunks(api, matomo_start, matomo_end, top5_matomo, selected_site_id)
+        # > 730 dias: df_services_trend permanece vazio, exibe mensagem na view
+
     tab1, tab2, tab3, tab4 = st.tabs([
         "1. Perfil do Cidadão",
         "2. Intenção de Busca",
@@ -188,7 +246,7 @@ if fonte == "Portal (Matomo)":
     with tab2:
         render_tab2_busca(df_search)
     with tab3:
-        render_tab3_servicos(df_pages)
+        render_tab3_servicos(df_pages, df_services=df_svc_all, df_services_trend=df_services_trend, trend_granularity=trend_granularity or 'day')
     with tab4:
         render_tab4_jornada(df_pages, api, period, date, selected_site_id)
 

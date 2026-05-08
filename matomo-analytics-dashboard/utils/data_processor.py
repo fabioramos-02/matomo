@@ -228,6 +228,64 @@ def process_device_types(data):
         return df
     return pd.DataFrame()
 
+_EXT_RE = re.compile(r'\.(jpg|png|pdf|css|js)$', re.IGNORECASE)
+_VALID_CATS = set(CATEGORIAS_MAPEAMENTO.keys())
+_DIGIT_TRAIL_RE = re.compile(r'\d+$')
+
+
+def process_services_trend(daily_data, top_services):
+    """
+    daily_data: dict {date_str: list_of_url_nodes} — resposta de get_page_urls_trend
+    top_services: lista de nomes de serviços (str) para filtrar
+    Retorna DataFrame com colunas: Data, Serviço, Visitas
+
+    Otimizado: loop direto nos nós brutos sem reconstruir DataFrame por dia.
+    """
+    if not daily_data or not isinstance(daily_data, dict) or not top_services:
+        return pd.DataFrame()
+
+    top_set = set(top_services)
+    rows = []
+
+    for date_str, url_data in sorted(daily_data.items()):
+        if not url_data or not isinstance(url_data, list):
+            continue
+        try:
+            data_parsed = pd.to_datetime(date_str)
+        except Exception:
+            continue
+
+        daily_visits: dict[str, int] = {}
+        for node in url_data:
+            url = node.get('label', '')
+            visits = node.get('nb_visits', 0) or 0
+            parts = [p for p in url.split('/') if p]
+            if len(parts) < 2:
+                continue
+            cat_raw = parts[0].lower()
+            if cat_raw not in _VALID_CATS:
+                continue
+            slug = parts[1]
+            if '-' not in slug or _EXT_RE.search(slug):
+                continue
+            svc_name = _DIGIT_TRAIL_RE.sub('', slug).replace('-', ' ').title()
+            if svc_name not in top_set:
+                continue
+            daily_visits[svc_name] = daily_visits.get(svc_name, 0) + visits
+
+        for svc, vis in daily_visits.items():
+            rows.append({'Data': data_parsed, 'Serviço': svc, 'Visitas': vis})
+
+    if not rows:
+        return pd.DataFrame()
+
+    return (
+        pd.DataFrame(rows)
+        .sort_values(['Data', 'Serviço'])
+        .reset_index(drop=True)
+    )
+
+
 def process_matomo_summary(data):
     """Processa o resumo de visitas do Matomo."""
     if not data or not isinstance(data, dict):

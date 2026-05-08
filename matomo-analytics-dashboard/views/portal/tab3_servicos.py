@@ -2,7 +2,7 @@ import streamlit as st
 import plotly.express as px
 from utils.data_processor import identify_service_cards
 
-def render_tab3_servicos(df_pages, fonte="Portal (Matomo)"):
+def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df_services_trend=None, trend_granularity='day'):
     is_ga = fonte == "MS Digital (GA4)"
 
     if is_ga:
@@ -23,8 +23,9 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)"):
 
     st.header("Serviços Consumidos")
     st.markdown("Identificadas pelo padrão de URL `/categoria/servico`.")
-    
-    df_services = identify_service_cards(df_pages)
+
+    if df_services is None:
+        df_services = identify_service_cards(df_pages)
     
     if not df_services.empty:
         df_cat = df_services.groupby('Categoria', as_index=False)['Visitas'].sum().sort_values(by='Visitas', ascending=False)
@@ -89,3 +90,38 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)"):
         )
     else:
         st.warning("Não foi possível identificar Cartas de Serviço no padrão de URLs para este período.")
+
+    # ── Evolução Temporal — Top 5 Serviços ───────────────────────────────────
+    st.markdown("---")
+    st.subheader("📈 Evolução Temporal — Top 5 Serviços")
+    _labels = {"day": "diários", "month": "mensais", "week": "semanais"}
+    granularity_label = _labels.get(trend_granularity, "diários")
+    st.caption(f"Acessos {granularity_label} dos 5 serviços mais utilizados no período.")
+
+    st.markdown(
+        "Acompanhe a variação dos serviços mais acessados ao longo do tempo.\n\n"
+        "- **Picos**: aumento de demanda — campanha, evento ou data comemorativa\n"
+        "- **Quedas**: possível indisponibilidade ou perda de interesse\n"
+        "- **Curvas similares**: serviços com comportamento relacionado\n\n"
+        "_Use este gráfico para identificar oportunidades de comunicação e possíveis problemas operacionais._"
+    )
+
+    if df_services_trend is not None and not df_services_trend.empty and df_services_trend['Data'].nunique() > 1:
+        fig_trend = px.line(
+            df_services_trend,
+            x="Data",
+            y="Visitas",
+            color="Serviço",
+            markers=True,
+            color_discrete_sequence=px.colors.qualitative.Plotly,
+            labels={"Visitas": f"Acessos / {granularity_label[:-1]}", "Data": ""},
+        )
+        fig_trend.update_layout(
+            legend=dict(orientation="h", yanchor="bottom", y=-0.35, xanchor="center", x=0.5),
+            margin=dict(t=10, b=80),
+            hovermode="x unified",
+        )
+        fig_trend.update_traces(line=dict(width=2))
+        st.plotly_chart(fig_trend, width="stretch")
+    else:
+        st.info("Selecione um período maior que 1 dia para visualizar a evolução temporal. Use **Semana**, **Mês**, **Ano** ou **Intervalo de datas**.")

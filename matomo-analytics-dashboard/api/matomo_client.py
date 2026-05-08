@@ -119,3 +119,14 @@ class MatomoAPI:
 
     def get_visits_summary(self, period, date, site_id=None):
         return self.get_data('VisitsSummary.get', period, date, None, site_id)
+
+    def get_page_urls_trend(self, start_date, end_date, site_id=None, limit=150, granularity='day'):
+        """
+        Retorna dict {period: [urls]} para tendência de serviços.
+        granularity: 'day' (≤60 dias) ou 'week' (períodos maiores).
+        """
+        return self.get_data(
+            'Actions.getPageUrls', granularity, f"{start_date},{end_date}",
+            {'filter_limit': limit, 'flat': 1, 'expanded': 0},
+            site_id
+        )

@@ -22,7 +22,8 @@ from utils.data_processor import (
     process_matomo_summary,
     process_page_urls,
     identify_service_cards,
-    process_search_keywords
+    process_search_keywords,
+    process_services_trend,
 )
 
 # Importar Exportador
@@ -100,10 +101,18 @@ def run():
         raw_matomo_cities = matomo_api.get_city("range", f"{start_date},{end_date}")
         data_to_export["matomo_cities"] = process_cities_ms(raw_matomo_cities)
         
-        # Serviços (Cartas de Serviço)
+        # Serviços (Cartas de Serviço) — agregado do período
         raw_page_urls = matomo_api.get_page_urls("range", f"{start_date},{end_date}", limit=500)
         df_pages = process_page_urls(raw_page_urls)
-        data_to_export["matomo_services"] = identify_service_cards(df_pages)
+        df_services = identify_service_cards(df_pages)
+        data_to_export["matomo_services"] = df_services
+
+        # Evolução Temporal — Top 5 Serviços (diário, ≤60 dias)
+        top5_names = df_services['Nome do Serviço'].head(5).tolist() if not df_services.empty else []
+        if top5_names:
+            raw_trend = matomo_api.get_page_urls_trend(start_date, end_date, granularity='day')
+            if raw_trend and isinstance(raw_trend, dict):
+                data_to_export["matomo_services_trend"] = process_services_trend(raw_trend, top5_names)
 
         # Buscas Internas
         raw_matomo_search = matomo_api.get_site_search_keywords("range", f"{start_date},{end_date}")

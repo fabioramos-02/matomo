@@ -94,105 +94,12 @@ ORDER BY v.created_at DESC;
 """
 
 
-# =========================================================================== #
-# DADOS MOCK — usados apenas quando o banco está inacessível                  #
-# =========================================================================== #
-
-_ORGAOS_MOCK = [
-    ("SEJUSP", "Secretaria de Justiça e Segurança Pública"),
-    ("SEFAZ", "Secretaria de Fazenda"),
-    ("SAÚDE", "Secretaria de Saúde"),
-    ("SED", "Secretaria de Educação"),
-    ("SETDIG", "Secretaria de Tecnologia e Inovação"),
-    ("DETRAN", "Departamento de Trânsito"),
-    ("AGEHAB", "Agência de Habitação"),
-    ("IMASUL", "Instituto de Meio Ambiente"),
-    ("JUCEMS", "Junta Comercial"),
-]
-_SERVICOS_MOCK = [
-    "Antecedentes Criminais", "Certidão de Nascimento", "Licenciamento de Veículo",
-    "Matrícula Escolar", "Cadastro para Habitação", "Licença Ambiental",
-    "Registro Empresarial", "Parcelamento de Débitos", "Cartão SUS",
-    "Renovação de CNH", "Transferência de Veículo", "Bolsa de Estudos",
-]
-
-random.seed(42)
-
-
-def _mock_inventory() -> pd.DataFrame:
-    rows = []
-    base = date(2020, 1, 1)
-    for i, nome in enumerate(_SERVICOS_MOCK):
-        sigla, orgao = _ORGAOS_MOCK[i % len(_ORGAOS_MOCK)]
-        rows.append({
-            "idservico": i + 1,
-            "titulo_servico": nome,
-            "slug_servico": nome.lower().replace(" ", "-"),
-            "slug_categoria": "financas-e-impostos",
-            "nome_popular": nome,
-            "siglaorgao": sigla,
-            "nome_orgao": orgao,
-            "servico_ativo": i % 5 != 0,
-            "digital": random.choice([True, True, False]),
-            "online": random.choice([True, False]),
-            "agendavel": random.choice([True, False, False]),
-            "acesso_externo": random.choice([True, False]),
-            "custo": random.choice(["Gratuito", "Pago", "Variável"]),
-            "tempo": random.randint(1, 30),
-            "tipo_tempo": random.choice(["dias úteis", "dias", "horas"]),
-            "data_criacao_servico": base + timedelta(days=i * 45),
-            "data_atualizacao_servico": base + timedelta(days=i * 45 + 60),
-        })
-    return pd.DataFrame(rows)
-
-
-def _mock_errors() -> pd.DataFrame:
-    tipos = ["Link quebrado", "Informação desatualizada", "Prazo incorreto", "Formulário inacessível"]
-    base = date(2023, 1, 1)
-    rows = []
-    for i in range(40):
-        sigla, orgao = _ORGAOS_MOCK[i % len(_ORGAOS_MOCK)]
-        criacao = base + timedelta(days=random.randint(0, 400))
-        rows.append({
-            "iderroservico": i + 1,
-            "idservico": random.randint(1, len(_SERVICOS_MOCK)),
-            "titulo_servico": random.choice(_SERVICOS_MOCK),
-            "slug_servico": "servico-mock",
-            "slug_categoria": "financas-e-impostos",
-            "siglaorgao": sigla,
-            "nome_orgao": orgao,
-            "conteudo": random.choice(tipos),
-            "atendido": random.choice([True, True, False]),
-            "corrigido_erro": random.choice([True, False]),
-            "resolucao_erro": random.choice(["Corrigido", "Em análise", None]),
-            "data_criacao_erro": criacao,
-            "data_atualizacao_erro": criacao + timedelta(days=random.randint(0, 60)),
-        })
-    return pd.DataFrame(rows)
-
-
-def _mock_votes() -> pd.DataFrame:
-    base = date(2023, 1, 1)
-    rows = []
-    for i in range(200):
-        sigla, orgao = _ORGAOS_MOCK[i % len(_ORGAOS_MOCK)]
-        rows.append({
-            "id_voto": i + 1,
-            "idservico": random.randint(1, len(_SERVICOS_MOCK)),
-            "titulo_servico": random.choice(_SERVICOS_MOCK),
-            "siglaorgao": sigla,
-            "nome_orgao": orgao,
-            "data_voto": base + timedelta(days=random.randint(0, 500)),
-            "avaliacao_voto_servico": random.choices([1, 2, 3, 4, 5], weights=[5, 10, 15, 35, 35])[0],
-        })
-    return pd.DataFrame(rows)
-
 
 # =========================================================================== #
 # LOADERS PÚBLICOS                                                             #
 # =========================================================================== #
 
-def _load_from_csv(filename: str, fallback_func):
+def _load_from_csv(filename: str) -> pd.DataFrame:
     path = os.path.join("exports", filename)
     if os.path.exists(path):
         try:
@@ -203,35 +110,38 @@ def _load_from_csv(filename: str, fallback_func):
                     df[col] = pd.to_datetime(df[col], errors='ignore')
             return df
         except Exception as e:
-            print(f"Erro ao carregar CSV de fallback ({path}): {e}")
-    return fallback_func()
+            st.error(f"⚠️ Erro ao ler CSV de fallback ({path}): {e}")
+            return pd.DataFrame()
+    else:
+        st.warning(f"⚠️ Sem conexão com o banco e arquivo '{path}' não encontrado. Execute 'python run_export.py' para gerar os dados.")
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_service_cards_inventory() -> pd.DataFrame:
     """Inventário de cartas: gerenciamento_servicos × gerenciamento_orgaos."""
     if not is_db_available():
-        return _load_from_csv("cartas_inventory.csv", _mock_inventory)
+        return _load_from_csv("cartas_inventory.csv")
     df = run_query(_SQL_INVENTORY)
-    return df if not df.empty else _load_from_csv("cartas_inventory.csv", _mock_inventory)
+    return df if not df.empty else _load_from_csv("cartas_inventory.csv")
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_service_cards_errors() -> pd.DataFrame:
     """Erros reportados: gerenciamento_servicoserros (sem IP e sem usuário)."""
     if not is_db_available():
-        return _load_from_csv("cartas_errors.csv", _mock_errors)
+        return _load_from_csv("cartas_errors.csv")
     df = run_query(_SQL_ERRORS)
-    return df if not df.empty else _load_from_csv("cartas_errors.csv", _mock_errors)
+    return df if not df.empty else _load_from_csv("cartas_errors.csv")
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_service_cards_votes() -> pd.DataFrame:
     """Votos de satisfação: gerenciamento_votosservicos (sem comentário e sem IP)."""
     if not is_db_available():
-        return _load_from_csv("cartas_votes.csv", _mock_votes)
+        return _load_from_csv("cartas_votes.csv")
     df = run_query(_SQL_VOTES)
-    return df if not df.empty else _load_from_csv("cartas_votes.csv", _mock_votes)
+    return df if not df.empty else _load_from_csv("cartas_votes.csv")
 
 
 @st.cache_data(ttl=3600, show_spinner=False)

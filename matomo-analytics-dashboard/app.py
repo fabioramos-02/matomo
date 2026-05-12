@@ -85,6 +85,19 @@ from views.ms_digital.tab2_funcionalidades import render_ga_tab2_funcionalidades
 from views.ms_digital.tab3_perfil import render_ga_tab3_perfil
 from views.ms_digital.tab4_jornada import render_ga_tab4_jornada
 
+# Views Cartas de Serviço (PostgreSQL)
+from views.cartas.tab1_visao_geral import render_tab1_visao_geral
+from views.cartas.tab2_por_orgao import render_tab2_por_orgao
+from views.cartas.tab3_qualidade import render_tab3_qualidade
+from views.cartas.tab4_satisfacao import render_tab4_satisfacao
+from views.cartas.tab5_cruzamentos import render_tab5_cruzamentos
+from utils.cartas_data_loaders import (
+    load_service_cards_inventory,
+    load_service_cards_errors,
+    load_service_cards_votes,
+    load_service_cards_info_reviews,
+)
+
 st.set_page_config(page_title="Analytics Dashboard", page_icon="📊", layout="wide")
 
 
@@ -139,7 +152,10 @@ def to_ga4_date_range(period: str, date_str: str) -> tuple[str, str]:
 # ==========================================
 st.sidebar.title("Filtros")
 
-fonte = st.sidebar.radio("Fonte de Dados", ["Portal (Matomo)", "MS Digital (GA4)"])
+fonte = st.sidebar.radio(
+    "Fonte de Dados",
+    ["Portal (Matomo)", "MS Digital (GA4)", "Cartas de Serviço (PostgreSQL)"],
+)
 st.sidebar.markdown("---")
 
 selected_site_id = int(MATOMO_SITE_ID)
@@ -156,6 +172,8 @@ if fonte == "Portal (Matomo)":
     default_idx = next((i for i, id_ in enumerate(sites_map.values()) if str(id_) == str(MATOMO_SITE_ID)), 0)
     selected_site_name = st.sidebar.selectbox("Site", list(sites_map.keys()), index=default_idx)
     selected_site_id = sites_map[selected_site_name]
+elif fonte == "Cartas de Serviço (PostgreSQL)":
+    st.sidebar.info("🗄️ Dados lidos direto do banco PostgreSQL da SETDIG.")
 else:
     pass
 
@@ -190,7 +208,12 @@ else:
 # ==========================================
 # CABEÇALHO
 # ==========================================
-fonte_label = "Portal ms.gov.br" if fonte == "Portal (Matomo)" else "MS Digital App (GA4)"
+_fonte_labels = {
+    "Portal (Matomo)": "Portal ms.gov.br",
+    "MS Digital (GA4)": "MS Digital App (GA4)",
+    "Cartas de Serviço (PostgreSQL)": "Cartas de Serviço",
+}
+fonte_label = _fonte_labels.get(fonte, fonte)
 periodo_str = (
     f"Intervalo: {start_d.strftime('%d/%m/%Y')} a {end_d.strftime('%d/%m/%Y')}"
     if period == "range"
@@ -198,7 +221,8 @@ periodo_str = (
 )
 
 st.title(f"📊 Dashboard Analítico — {fonte_label}")
-st.markdown(f"**🗓️ Período:** {periodo_str}")
+if fonte != "Cartas de Serviço (PostgreSQL)":
+    st.markdown(f"**🗓️ Período:** {periodo_str}")
 
 # ==========================================
 # CARREGAMENTO E RENDERIZAÇÃO
@@ -249,6 +273,33 @@ if fonte == "Portal (Matomo)":
         render_tab3_servicos(df_pages, df_services=df_svc_all, df_services_trend=df_services_trend, trend_granularity=trend_granularity or 'day')
     with tab4:
         render_tab4_jornada(df_pages, api, period, date, selected_site_id)
+
+elif fonte == "Cartas de Serviço (PostgreSQL)":
+    with st.spinner("Carregando dados das Cartas de Serviço..."):
+        df_cs_inventory = load_service_cards_inventory()
+        df_cs_errors = load_service_cards_errors()
+        df_cs_votes = load_service_cards_votes()
+        df_cs_info = load_service_cards_info_reviews()
+
+    tab_cs1, tab_cs2, tab_cs3, tab_cs4, tab_cs5 = st.tabs([
+        "1. Visão Geral",
+        "2. Por Órgão",
+        "3. Qualidade / Erros",
+        "4. Satisfação",
+        "5. Cruzamentos Estratégicos",
+    ])
+    with tab_cs1:
+        render_tab1_visao_geral(df_cs_inventory.copy())
+    with tab_cs2:
+        render_tab2_por_orgao(df_cs_inventory.copy())
+    with tab_cs3:
+        render_tab3_qualidade(df_cs_errors.copy())
+    with tab_cs4:
+        render_tab4_satisfacao(df_cs_votes.copy())
+    with tab_cs5:
+        # Tenta passar dados do Matomo se disponíveis na sessão
+        _matomo_pages = st.session_state.get("df_svc_all", None)
+        render_tab5_cruzamentos(df_cs_inventory.copy(), df_cs_errors.copy(), df_cs_votes.copy(), _matomo_pages)
 
 else:
     ga_api = get_ga_api()

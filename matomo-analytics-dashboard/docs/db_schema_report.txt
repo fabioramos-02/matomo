@@ -1,0 +1,901 @@
+=== Relatório de Schema: admin_prd ===
+
+Schemas: ['information_schema', 'pg_catalog', 'public']
+
+
+============================================================
+Tabelas e Views (125 total):
+============================================================
+  [TABLE] public.account_emailaddress
+  [TABLE] public.account_emailconfirmation
+  [TABLE] public.agendamento_agendamentointerno
+  [TABLE] public.agendamento_agendamentopresencial
+  [TABLE] public.agendamento_avaliacaoatendimentopresencial
+  [TABLE] public.agendamento_avaliacaoentregapresencial
+  [TABLE] public.agendamento_avaliacaointerno
+  [TABLE] public.agendamento_avaliacaopresencial
+  [TABLE] public.agendamento_avaliacaoservicointernopresencial
+  [TABLE] public.agendamento_avaliacaoservicopresencial
+  [TABLE] public.agendamento_dependentes
+  [TABLE] public.agendamento_dependentesinterno
+  [TABLE] public.agendamento_observacao
+  [TABLE] public.agendamento_observacaointerna
+  [TABLE] public.agendamento_rastreamentoavaliacaoatendimento
+  [TABLE] public.agendamento_rastreamentoavaliacaoentrega
+  [TABLE] public.atendimento_anexosrespostas
+  [TABLE] public.atendimento_anexostopicos
+  [TABLE] public.atendimento_avaliacaoatendimentoonline
+  [TABLE] public.atendimento_avaliacaoonline
+  [TABLE] public.atendimento_avaliacaoservicoonline
+  [TABLE] public.atendimento_dependentes
+  [TABLE] public.atendimento_motivostopicos
+  [TABLE] public.atendimento_observacao
+  [TABLE] public.atendimento_respostas
+  [TABLE] public.atendimento_topicos
+  [TABLE] public.auth_group
+  [TABLE] public.auth_group_permissions
+  [TABLE] public.auth_permission
+  [TABLE] public.auth_user
+  [TABLE] public.auth_user_groups
+  [TABLE] public.auth_user_user_permissions
+  [TABLE] public.authtoken_token
+  [TABLE] public.core_profilehierarchy
+  [TABLE] public.core_profilehierarchy_can_grant_profiles
+  [TABLE] public.core_profilehierarchy_can_remove_profiles
+  [TABLE] public.diario_atendimentodiario
+  [TABLE] public.diario_avaliacaodiario
+  [TABLE] public.diario_dependentes
+  [TABLE] public.diario_observacao
+  [TABLE] public.django_admin_log
+  [TABLE] public.django_content_type
+  [TABLE] public.django_migrations
+  [TABLE] public.django_session
+  [TABLE] public.django_site
+  [TABLE] public.gerenciamento_accesstoken
+  [TABLE] public.gerenciamento_acessounidadeusuarios
+  [TABLE] public.gerenciamento_aplicativos
+  [TABLE] public.gerenciamento_avaliacao
+  [TABLE] public.gerenciamento_avaliacaoinformacaoservicos
+  [TABLE] public.gerenciamento_aviso
+  [TABLE] public.gerenciamento_canaisatendimento
+  [TABLE] public.gerenciamento_cancelamentos
+  [TABLE] public.gerenciamento_cidades
+  [TABLE] public.gerenciamento_configuracaoagendamento
+  [TABLE] public.gerenciamento_configuracaoavaliacao
+  [TABLE] public.gerenciamento_configuracoes
+  [TABLE] public.gerenciamento_contatoorgao
+  [TABLE] public.gerenciamento_contatounidade
+  [TABLE] public.gerenciamento_enderecoorgao
+  [TABLE] public.gerenciamento_excecaohorariosagendamento
+  [TABLE] public.gerenciamento_excecaohorariosagendamentocomplementar
+  [TABLE] public.gerenciamento_feriados
+  [TABLE] public.gerenciamento_filahorarios
+  [TABLE] public.gerenciamento_gestororgao
+  [TABLE] public.gerenciamento_guia
+  [TABLE] public.gerenciamento_guiaservicos
+  [TABLE] public.gerenciamento_guiches
+  [TABLE] public.gerenciamento_guiches_user
+  [TABLE] public.gerenciamento_guicheservico
+  [TABLE] public.gerenciamento_guicheservicocomplementar
+  [TABLE] public.gerenciamento_historicoservico
+  [TABLE] public.gerenciamento_horarioatendimento
+  [TABLE] public.gerenciamento_horariounidade
+  [TABLE] public.gerenciamento_jornada
+  [TABLE] public.gerenciamento_linksavaliacao
+  [TABLE] public.gerenciamento_mensagemadmin
+  [TABLE] public.gerenciamento_mensagemadminlida
+  [TABLE] public.gerenciamento_motivos
+  [TABLE] public.gerenciamento_notificacaoorgao
+  [TABLE] public.gerenciamento_orgaos
+  [TABLE] public.gerenciamento_orgaosites
+  [TABLE] public.gerenciamento_osastoken
+  [TABLE] public.gerenciamento_perguntas
+  [TABLE] public.gerenciamento_perguntasavaliacao
+  [TABLE] public.gerenciamento_prioridade
+  [TABLE] public.gerenciamento_qrcodeavaliacao
+  [TABLE] public.gerenciamento_qrcodeavaliacao_servicos
+  [TABLE] public.gerenciamento_questionarios
+  [TABLE] public.gerenciamento_reagendamentos
+  [TABLE] public.gerenciamento_respostas
+  [TABLE] public.gerenciamento_respostasavaliacao
+  [TABLE] public.gerenciamento_revisaoservico
+  [TABLE] public.gerenciamento_senhachamadaatendimento
+  [TABLE] public.gerenciamento_servicos
+  [TABLE] public.gerenciamento_servicoserros
+  [TABLE] public.gerenciamento_servicosfavoritos
+  [TABLE] public.gerenciamento_servicosintegracao
+  [TABLE] public.gerenciamento_servicosinternos
+  [TABLE] public.gerenciamento_servicosunidade
+  [TABLE] public.gerenciamento_setor
+  [TABLE] public.gerenciamento_setorservicosinternos
+  [TABLE] public.gerenciamento_setorunidade
+  [TABLE] public.gerenciamento_sistemainstitucional
+  [TABLE] public.gerenciamento_sistemasinstitucionaisfavoritos
+  [TABLE] public.gerenciamento_subtopicos
+  [TABLE] public.gerenciamento_tasks
+  [TABLE] public.gerenciamento_temas
+  [TABLE] public.gerenciamento_temposervicocomplementarfila
+  [TABLE] public.gerenciamento_temposervicofila
+  [TABLE] public.gerenciamento_termos
+  [TABLE] public.gerenciamento_termosassinado
+  [TABLE] public.gerenciamento_topicos
+  [TABLE] public.gerenciamento_totem
+  [TABLE] public.gerenciamento_totem_prioridades
+  [TABLE] public.gerenciamento_totem_servicos
+  [TABLE] public.gerenciamento_unidades
+  [TABLE] public.gerenciamento_unidadeusuarios
+  [TABLE] public.gerenciamento_usuarioorgao
+  [TABLE] public.gerenciamento_votosservicos
+  [TABLE] public.rest_framework_api_key_apikey
+  [TABLE] public.socialaccount_socialaccount
+  [TABLE] public.socialaccount_socialapp
+  [TABLE] public.socialaccount_socialapp_sites
+  [TABLE] public.socialaccount_socialtoken
+
+============================================================
+Colunas das tabelas relevantes:
+============================================================
+
+[public.agendamento_avaliacaoatendimentopresencial]
+  - id (integer) NOT NULL
+  - curtir (boolean) NOT NULL
+  - comentario (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - agendamento_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.agendamento_avaliacaoentregapresencial]
+  - id (integer) NOT NULL
+  - curtir (boolean) NOT NULL
+  - comentario (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - agendamento_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.agendamento_avaliacaointerno]
+  - id (character varying) NOT NULL
+  - pendente (boolean) NOT NULL
+  - avaliacao_consumo (smallint) NULL
+  - comentario_consumo (text) NULL
+  - avaliacao_atendimento (smallint) NULL
+  - comentario_atendimento (text) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - agendamento_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.agendamento_avaliacaopresencial]
+  - id (character varying) NOT NULL
+  - pendente (boolean) NOT NULL
+  - avaliacao_consumo (smallint) NULL
+  - comentario_consumo (text) NULL
+  - avaliacao_atendimento (smallint) NULL
+  - comentario_atendimento (text) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - agendamento_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.agendamento_avaliacaoservicointernopresencial]
+  - id (integer) NOT NULL
+  - curtir (boolean) NOT NULL
+  - comentario (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - agendamento_id (integer) NOT NULL
+  - servico_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.agendamento_avaliacaoservicopresencial]
+  - id (integer) NOT NULL
+  - curtir (boolean) NOT NULL
+  - comentario (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - agendamento_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.agendamento_rastreamentoavaliacaoatendimento]
+  - id (character varying) NOT NULL
+  - one (boolean) NOT NULL
+  - two (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - agendamento_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.agendamento_rastreamentoavaliacaoentrega]
+  - id (character varying) NOT NULL
+  - one (boolean) NOT NULL
+  - two (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - agendamento_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.atendimento_anexosrespostas]
+  - id (integer) NOT NULL
+  - titulo (character varying) NOT NULL
+  - descricao (character varying) NOT NULL
+  - arquivo (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - resposta_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.atendimento_anexostopicos]
+  - id (integer) NOT NULL
+  - titulo (character varying) NOT NULL
+  - descricao (character varying) NOT NULL
+  - arquivo (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - topico_id (character varying) NOT NULL
+
+  → 0 registros
+
+
+[public.atendimento_avaliacaoatendimentoonline]
+  - id (integer) NOT NULL
+  - curtir (boolean) NOT NULL
+  - comentario (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - topico_id (character varying) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.atendimento_avaliacaoonline]
+  - id (uuid) NOT NULL
+  - pendente (boolean) NOT NULL
+  - avaliacao_consumo (smallint) NULL
+  - comentario_consumo (text) NULL
+  - avaliacao_atendimento (smallint) NULL
+  - comentario_atendimento (text) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - agendamento_id (character varying) NOT NULL
+  - user_id (integer) NOT NULL
+  - avaliacao_resolucao_problema (smallint) NULL
+
+  → 5 registros
+
+
+[public.atendimento_avaliacaoservicoonline]
+  - id (integer) NOT NULL
+  - curtir (boolean) NOT NULL
+  - comentario (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - servico_id (integer) NOT NULL
+  - topico_id (character varying) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.atendimento_dependentes]
+  - id (integer) NOT NULL
+  - cpf (character varying) NOT NULL
+  - nome (character varying) NOT NULL
+  - data_nascimento (date) NOT NULL
+  - grau_parentesco (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - atendimento_id (character varying) NOT NULL
+  - cpf_solicitante (character varying) NOT NULL
+
+  → 0 registros
+
+
+[public.atendimento_motivostopicos]
+  - id (integer) NOT NULL
+  - motivo (character varying) NOT NULL
+  - descricao_problema (text) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - topico_id (character varying) NOT NULL
+
+  → 0 registros
+
+
+[public.atendimento_observacao]
+  - id (integer) NOT NULL
+  - conteudo (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - topico_id (character varying) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 4 registros
+
+
+[public.atendimento_respostas]
+  - id (integer) NOT NULL
+  - conteudo (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - topico_id (character varying) NOT NULL
+  - user_id (integer) NOT NULL
+  - lido (boolean) NOT NULL
+  - anexo (boolean) NOT NULL
+
+  → 27 registros
+
+
+[public.atendimento_topicos]
+  - id (character varying) NOT NULL
+  - titulo (character varying) NOT NULL
+  - conteudo (text) NOT NULL
+  - status (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - guiche_id (integer) NULL
+  - servico_id (integer) NOT NULL
+  - unidade_id (character varying) NOT NULL
+  - user_id (integer) NOT NULL
+  - data (date) NOT NULL
+  - hora (time without time zone) NOT NULL
+  - hora_inicio (timestamp with time zone) NULL
+  - setor_id (integer) NULL
+  - anexo (boolean) NOT NULL
+  - tipo (character varying) NOT NULL
+  - para_dependente (boolean) NOT NULL
+  - cancelado_sistema (boolean) NOT NULL
+  - setor_unidade_id (integer) NULL
+  - protocolo (character varying) NULL
+  - protocolo_atendimento (character varying) NULL
+  - tempo_previsto (smallint) NULL
+
+  → 10 registros
+
+
+[public.diario_atendimentodiario]
+  - id (integer) NOT NULL
+  - cpf (character varying) NULL
+  - tipo (character varying) NOT NULL
+  - prioridade (boolean) NOT NULL
+  - ticket (character varying) NOT NULL
+  - data (date) NOT NULL
+  - hora (time without time zone) NOT NULL
+  - status (character varying) NOT NULL
+  - para_dependente (boolean) NOT NULL
+  - hora_inicio (timestamp with time zone) NULL
+  - data_solicitacao (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - guiche_id (integer) NULL
+  - servico_id (integer) NOT NULL
+  - setor_id (integer) NULL
+  - unidade_id (character varying) NOT NULL
+  - user_id (integer) NULL
+  - nome (character varying) NOT NULL
+  - reagendamento (boolean) NOT NULL
+  - setor_unidade_id (integer) NULL
+  - atendente_id (character varying) NULL
+  - atendente_nome (character varying) NULL
+  - descricao_atendimento (text) NULL
+  - prioridade_alta (boolean) NOT NULL
+  - protocolo (character varying) NULL
+  - documento (character varying) NULL
+  - protocolo_atendimento (character varying) NULL
+  - tempo_previsto (smallint) NULL
+  - tipo_documento (character varying) NOT NULL
+  - prioridade_atendimento_id (integer) NULL
+  - senha (smallint) NULL
+  - senha_chamada (boolean) NOT NULL
+  - totem_id (integer) NULL
+
+  → 0 registros
+
+
+[public.diario_avaliacaodiario]
+  - id (uuid) NOT NULL
+  - pendente (boolean) NOT NULL
+  - avaliacao_consumo (smallint) NULL
+  - comentario_consumo (text) NULL
+  - avaliacao_atendimento (smallint) NULL
+  - comentario_atendimento (text) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - agendamento_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.gerenciamento_avaliacao]
+  - id (uuid) NOT NULL
+  - pendente (boolean) NOT NULL
+  - avaliacao_informacao (smallint) NULL
+  - comentario_informacao (text) NULL
+  - avaliacao_consumo (smallint) NULL
+  - comentario_consumo (text) NULL
+  - avaliacao_atendimento (smallint) NULL
+  - comentario_atendimento (text) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - servico_id (integer) NOT NULL
+  - user_id (integer) NULL
+  - ip (character varying) NOT NULL
+
+  → 3 registros
+
+
+[public.gerenciamento_avaliacaoinformacaoservicos]
+  - id (integer) NOT NULL
+  - avaliacao (boolean) NOT NULL
+  - ip (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - servico_id (integer) NOT NULL
+
+  → 9,867 registros
+
+
+[public.gerenciamento_canaisatendimento]
+  - id (integer) NOT NULL
+  - titulo (character varying) NOT NULL
+  - url (character varying) NOT NULL
+  - icone (character varying) NOT NULL
+  - ativo (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+
+  → 0 registros
+
+
+[public.gerenciamento_configuracaoavaliacao]
+  - id (character varying) NOT NULL
+  - versao (integer) NOT NULL
+  - titulo (character varying) NOT NULL
+  - descricao (text) NOT NULL
+  - ativo (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 1 registros
+
+
+[public.gerenciamento_contatoorgao]
+  - id (integer) NOT NULL
+  - telefone (character varying) NOT NULL
+  - instagram (character varying) NULL
+  - whatsapp (character varying) NULL
+  - facebook (character varying) NULL
+  - twitter (character varying) NULL
+  - youtube (character varying) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - orgao_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+  - email (character varying) NOT NULL
+
+  → 40 registros
+
+
+[public.gerenciamento_enderecoorgao]
+  - id (integer) NOT NULL
+  - endereco (character varying) NOT NULL
+  - complemento (character varying) NULL
+  - bairro (character varying) NOT NULL
+  - cep (character varying) NULL
+  - source (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - cidade_id (character varying) NOT NULL
+  - orgao_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+  - dia_semana (ARRAY) NOT NULL
+  - hora_fim_manha (time without time zone) NULL
+  - hora_fim_tarde (time without time zone) NULL
+  - hora_inicio_manha (time without time zone) NULL
+  - hora_inicio_tarde (time without time zone) NULL
+  - intervalo_ativo (boolean) NOT NULL
+  - atendimento_hora_fim_manha (time without time zone) NULL
+  - atendimento_hora_fim_tarde (time without time zone) NULL
+  - atendimento_hora_inicio_manha (time without time zone) NULL
+  - atendimento_hora_inicio_tarde (time without time zone) NULL
+
+  → 41 registros
+
+
+[public.gerenciamento_gestororgao]
+  - id (integer) NOT NULL
+  - arquivo (character varying) NOT NULL
+  - nome (character varying) NOT NULL
+  - biografia (text) NOT NULL
+  - ativo (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - orgao_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 61 registros
+
+
+[public.gerenciamento_guiaservicos]
+  - id (integer) NOT NULL
+  - ordem (smallint) NOT NULL
+  - descricao (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - guia_id (integer) NOT NULL
+  - servico_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.gerenciamento_guicheservico]
+  - id (integer) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - guiche_id (integer) NOT NULL
+  - servico_id (integer) NOT NULL
+
+  → 6 registros
+
+
+[public.gerenciamento_guicheservicocomplementar]
+  - id (integer) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - guiche_id (integer) NOT NULL
+  - servico_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.gerenciamento_historicoservico]
+  - id (integer) NOT NULL
+  - acao (character varying) NOT NULL
+  - dados (jsonb) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - servico_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+  - aprovado (boolean) NOT NULL
+  - pendente (boolean) NOT NULL
+  - versao (integer) NOT NULL
+  - comentario_recusa (text) NULL
+  - updated_at (timestamp with time zone) NOT NULL
+
+  → 25,052 registros
+
+
+[public.gerenciamento_horarioatendimento]
+  - id (integer) NOT NULL
+  - dia_semana (character varying) NOT NULL
+  - hora_inicio (time without time zone) NOT NULL
+  - hora_fim (time without time zone) NOT NULL
+  - ativo (boolean) NOT NULL
+  - motivo_inativo (text) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - setor_id (integer) NOT NULL
+  - intervalo_hora_fim (time without time zone) NULL
+  - intervalo_hora_inicio (time without time zone) NULL
+
+  → 11 registros
+
+
+[public.gerenciamento_linksavaliacao]
+  - id (character varying) NOT NULL
+  - ordem (integer) NOT NULL
+  - titulo (character varying) NOT NULL
+  - acao (character varying) NOT NULL
+  - url (text) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - configuracao_id (character varying) NOT NULL
+
+  → 1 registros
+
+
+[public.gerenciamento_notificacaoorgao]
+  - id (integer) NOT NULL
+  - titulo (character varying) NOT NULL
+  - conteudo (text) NOT NULL
+  - ativo (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - orgao_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.gerenciamento_orgaos]
+  - id (integer) NOT NULL
+  - sigla (character varying) NOT NULL
+  - nome (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - slug (character varying) NULL
+  - user_id (integer) NULL
+  - descricao (text) NULL
+  - link (character varying) NULL
+  - missao (text) NULL
+  - valores (text) NULL
+  - visao (text) NULL
+  - ativo (boolean) NOT NULL
+  - orgao_externo (boolean) NOT NULL
+  - orgao_externo_id (character varying) NULL
+  - qrcode_id (character varying) NULL
+  - ignorar_regras (boolean) NOT NULL
+  - multiplos_locais (boolean) NOT NULL
+  - orgao_sgeo_id (character varying) NULL
+
+  → 42 registros
+
+
+[public.gerenciamento_orgaosites]
+  - id (integer) NOT NULL
+  - titulo (character varying) NOT NULL
+  - ativo (boolean) NOT NULL
+  - link (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - orgao_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 10 registros
+
+
+[public.gerenciamento_perguntasavaliacao]
+  - id (character varying) NOT NULL
+  - ordem (integer) NOT NULL
+  - titulo (character varying) NOT NULL
+  - descricao (text) NOT NULL
+  - tipo (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - configuracao_id (character varying) NOT NULL
+
+  → 3 registros
+
+
+[public.gerenciamento_qrcodeavaliacao]
+  - id (character varying) NOT NULL
+  - titulo (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - orgao_id (integer) NULL
+  - user_id (integer) NULL
+  - descricao (text) NULL
+  - qrcode_id (character varying) NULL
+
+  → 1 registros
+
+
+[public.gerenciamento_qrcodeavaliacao_servicos]
+  - id (integer) NOT NULL
+  - qrcodeavaliacao_id (character varying) NOT NULL
+  - servicos_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.gerenciamento_respostasavaliacao]
+  - id (character varying) NOT NULL
+  - resposta (jsonb) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - avaliacao_id (character varying) NOT NULL
+  - user_id (integer) NULL
+  - ip (character varying) NULL
+
+  → 25 registros
+
+
+[public.gerenciamento_revisaoservico]
+  - id (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - servico_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+  - data (date) NULL
+
+  → 7,434 registros
+
+
+[public.gerenciamento_senhachamadaatendimento]
+  - id (integer) NOT NULL
+  - servico_titulo (character varying) NULL
+  - senha (character varying) NULL
+  - cidadao_nome (character varying) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - guiche_id (integer) NULL
+  - unidade_id (character varying) NOT NULL
+
+  → 0 registros
+
+
+[public.gerenciamento_servicos]
+  - id (integer) NOT NULL
+  - slug (character varying) NOT NULL
+  - titulo (character varying) NOT NULL
+  - descricao (text) NOT NULL
+  - requisitos (text) NOT NULL
+  - custo (character varying) NOT NULL
+  - tempo (smallint) NULL
+  - acesso_externo (boolean) NOT NULL
+  - url_externo (character varying) NULL
+  - agendavel (boolean) NOT NULL
+  - ativo (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - setor_id (integer) NOT NULL
+  - user_id (integer) NULL
+  - online (boolean) NOT NULL
+  - informacoes_extra (text) NULL
+  - publico (text) NOT NULL
+  - tempo_total (smallint) NOT NULL
+  - tipo_tempo (character varying) NOT NULL
+  - tempo_online (smallint) NULL
+  - tema_id (integer) NOT NULL
+  - destaque (boolean) NOT NULL
+  - publico_especifico (ARRAY) NOT NULL
+  - link_integrado (boolean) NOT NULL
+  - autor_id (character varying) NULL
+  - autor_nome (character varying) NULL
+  - id_servico (character varying) NULL
+  - canais_atendimento (character varying) NULL
+  - palavra_chave (character varying) NULL
+  - topico_id (integer) NULL
+  - nome_popular (character varying) NULL
+  - qrcode_id (character varying) NULL
+  - nome_popular_indexado (character varying) NULL
+  - palavra_chave_indexadas (character varying) NULL
+  - titulo_indexado (character varying) NULL
+  - digital (boolean) NOT NULL
+  - id_servico_govbr (integer) NULL
+
+  → 1,502 registros
+
+
+[public.gerenciamento_servicoserros]
+  - id (character varying) NOT NULL
+  - conteudo (text) NOT NULL
+  - atendido (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - corrigido_por_id (integer) NULL
+  - reportado_por_id (integer) NULL
+  - servico_id (integer) NOT NULL
+  - resolucao (text) NULL
+  - ip (character varying) NULL
+
+  → 649 registros
+
+
+[public.gerenciamento_servicosfavoritos]
+  - id (integer) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - servico_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 546 registros
+
+
+[public.gerenciamento_servicosintegracao]
+  - id (character varying) NOT NULL
+  - titulo (character varying) NOT NULL
+  - integracao_id (character varying) NOT NULL
+  - ativo (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - servico_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+
+  → 1 registros
+
+
+[public.gerenciamento_servicosinternos]
+  - id (integer) NOT NULL
+  - slug (character varying) NOT NULL
+  - titulo (character varying) NOT NULL
+  - descricao (text) NOT NULL
+  - ativo (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - servico_id (integer) NOT NULL
+
+  → 35 registros
+
+
+[public.gerenciamento_servicosunidade]
+  - id (integer) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - servico_id (integer) NOT NULL
+  - unidade_id (character varying) NOT NULL
+  - agendamento (boolean) NOT NULL
+  - atendimento (boolean) NOT NULL
+
+  → 17,136 registros
+
+
+[public.gerenciamento_setorservicosinternos]
+  - id (integer) NOT NULL
+  - ativo (boolean) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - servico_id (integer) NOT NULL
+  - setor_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.gerenciamento_temposervicocomplementarfila]
+  - id (integer) NOT NULL
+  - tempo (smallint) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - fila_id (integer) NOT NULL
+  - servico_id (integer) NOT NULL
+
+  → 0 registros
+
+
+[public.gerenciamento_temposervicofila]
+  - id (integer) NOT NULL
+  - tempo_presencial (smallint) NULL
+  - tempo_online (smallint) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - fila_id (integer) NOT NULL
+  - servico_id (integer) NOT NULL
+
+  → 5 registros
+
+
+[public.gerenciamento_totem_servicos]
+  - id (integer) NOT NULL
+  - totem_id (integer) NOT NULL
+  - servicos_id (integer) NOT NULL
+
+  → 1 registros
+
+
+[public.gerenciamento_usuarioorgao]
+  - id (integer) NOT NULL
+  - perfil (character varying) NOT NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - updated_at (timestamp with time zone) NOT NULL
+  - orgao_id (integer) NOT NULL
+  - user_id (integer) NOT NULL
+  - sincronizado (boolean) NOT NULL
+
+  → 212 registros
+
+
+[public.gerenciamento_votosservicos]
+  - id (integer) NOT NULL
+  - comentario (text) NULL
+  - created_at (timestamp with time zone) NOT NULL
+  - servicos_id (integer) NOT NULL
+  - user_id (integer) NULL
+  - avaliacao (smallint) NOT NULL
+  - ip (character varying) NULL
+
+  → 2,764 registros

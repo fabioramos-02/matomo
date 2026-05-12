@@ -14,6 +14,7 @@ Princípio de Responsabilidade Única:
     - Fallback automático para dados mock se o banco estiver indisponível.
 """
 
+import os
 import pandas as pd
 import streamlit as st
 import random
@@ -30,6 +31,8 @@ _SQL_INVENTORY = """
 SELECT
     s.id                        AS idservico,
     s.titulo                    AS titulo_servico,
+    s.slug                      AS slug_servico,
+    t.slug                      AS slug_categoria,
     s.nome_popular,
     o.sigla                     AS siglaorgao,
     o.nome                      AS nome_orgao,
@@ -46,6 +49,7 @@ SELECT
 FROM public.gerenciamento_servicos s
 INNER JOIN public.gerenciamento_setor st ON st.id = s.setor_id
 INNER JOIN public.gerenciamento_orgaos o ON o.id = st.orgao_id
+LEFT JOIN public.gerenciamento_temas t ON t.id = s.tema_id
 ORDER BY s.titulo;
 """
 
@@ -54,6 +58,8 @@ SELECT
     e.id                        AS iderroservico,
     e.servico_id                AS idservico,
     s.titulo                    AS titulo_servico,
+    s.slug                      AS slug_servico,
+    t_cat.slug                  AS slug_categoria,
     o.sigla                     AS siglaorgao,
     o.nome                      AS nome_orgao,
     e.conteudo,
@@ -66,6 +72,7 @@ FROM public.gerenciamento_servicoserros e
 INNER JOIN public.gerenciamento_servicos s ON s.id = e.servico_id
 INNER JOIN public.gerenciamento_setor st ON st.id = s.setor_id
 INNER JOIN public.gerenciamento_orgaos o ON o.id = st.orgao_id
+LEFT JOIN public.gerenciamento_temas t_cat ON t_cat.id = s.tema_id
 ORDER BY e.created_at DESC;
 """
 
@@ -74,11 +81,15 @@ SELECT
     v.id                        AS id_voto,
     v.servicos_id               AS idservico,
     s.titulo                    AS titulo_servico,
+    o.sigla                     AS siglaorgao,
+    o.nome                      AS nome_orgao,
     v.created_at                AS data_voto,
     v.avaliacao                 AS avaliacao_voto_servico
     -- excluídos: v.comentario (LGPD), v.ip, v.user_id
 FROM public.gerenciamento_votosservicos v
 INNER JOIN public.gerenciamento_servicos s ON s.id = v.servicos_id
+INNER JOIN public.gerenciamento_setor st ON st.id = s.setor_id
+INNER JOIN public.gerenciamento_orgaos o ON o.id = st.orgao_id
 ORDER BY v.created_at DESC;
 """
 
@@ -116,6 +127,8 @@ def _mock_inventory() -> pd.DataFrame:
         rows.append({
             "idservico": i + 1,
             "titulo_servico": nome,
+            "slug_servico": nome.lower().replace(" ", "-"),
+            "slug_categoria": "financas-e-impostos",
             "nome_popular": nome,
             "siglaorgao": sigla,
             "nome_orgao": orgao,
@@ -144,6 +157,8 @@ def _mock_errors() -> pd.DataFrame:
             "iderroservico": i + 1,
             "idservico": random.randint(1, len(_SERVICOS_MOCK)),
             "titulo_servico": random.choice(_SERVICOS_MOCK),
+            "slug_servico": "servico-mock",
+            "slug_categoria": "financas-e-impostos",
             "siglaorgao": sigla,
             "nome_orgao": orgao,
             "conteudo": random.choice(tipos),
@@ -160,10 +175,13 @@ def _mock_votes() -> pd.DataFrame:
     base = date(2023, 1, 1)
     rows = []
     for i in range(200):
+        sigla, orgao = _ORGAOS_MOCK[i % len(_ORGAOS_MOCK)]
         rows.append({
             "id_voto": i + 1,
             "idservico": random.randint(1, len(_SERVICOS_MOCK)),
             "titulo_servico": random.choice(_SERVICOS_MOCK),
+            "siglaorgao": sigla,
+            "nome_orgao": orgao,
             "data_voto": base + timedelta(days=random.randint(0, 500)),
             "avaliacao_voto_servico": random.choices([1, 2, 3, 4, 5], weights=[5, 10, 15, 35, 35])[0],
         })
@@ -174,31 +192,46 @@ def _mock_votes() -> pd.DataFrame:
 # LOADERS PÚBLICOS                                                             #
 # =========================================================================== #
 
+def _load_from_csv(filename: str, fallback_func):
+    path = os.path.join("exports", filename)
+    if os.path.exists(path):
+        try:
+            df = pd.read_csv(path)
+            # Try to convert datetime columns if they exist
+            for col in df.columns:
+                if "data_" in col or "created_at" in col or "updated_at" in col:
+                    df[col] = pd.to_datetime(df[col], errors='ignore')
+            return df
+        except Exception as e:
+            print(f"Erro ao carregar CSV de fallback ({path}): {e}")
+    return fallback_func()
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_service_cards_inventory() -> pd.DataFrame:
     """Inventário de cartas: gerenciamento_servicos × gerenciamento_orgaos."""
     if not is_db_available():
-        return _mock_inventory()
+        return _load_from_csv("cartas_inventory.csv", _mock_inventory)
     df = run_query(_SQL_INVENTORY)
-    return df if not df.empty else _mock_inventory()
+    return df if not df.empty else _load_from_csv("cartas_inventory.csv", _mock_inventory)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_service_cards_errors() -> pd.DataFrame:
     """Erros reportados: gerenciamento_servicoserros (sem IP e sem usuário)."""
     if not is_db_available():
-        return _mock_errors()
+        return _load_from_csv("cartas_errors.csv", _mock_errors)
     df = run_query(_SQL_ERRORS)
-    return df if not df.empty else _mock_errors()
+    return df if not df.empty else _load_from_csv("cartas_errors.csv", _mock_errors)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_service_cards_votes() -> pd.DataFrame:
     """Votos de satisfação: gerenciamento_votosservicos (sem comentário e sem IP)."""
     if not is_db_available():
-        return _mock_votes()
+        return _load_from_csv("cartas_votes.csv", _mock_votes)
     df = run_query(_SQL_VOTES)
-    return df if not df.empty else _mock_votes()
+    return df if not df.empty else _load_from_csv("cartas_votes.csv", _mock_votes)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)

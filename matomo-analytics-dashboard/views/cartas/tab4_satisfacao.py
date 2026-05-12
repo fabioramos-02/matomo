@@ -173,3 +173,58 @@ def render_tab4_satisfacao(df_votes: pd.DataFrame):
         # Linha de referência em 4 (satisfatório)
         fig_nota.add_hline(y=4, line_dash="dot", line_color="#22C55E", annotation_text="Meta ≥ 4")
         st.plotly_chart(fig_nota, use_container_width=True)
+
+    # ------------------------------------------------------------------ #
+    # Visão por Órgão                                                     #
+    # ------------------------------------------------------------------ #
+    st.markdown("---")
+    st.markdown("#### 🏛️ Satisfação por Órgão")
+    
+    if "siglaorgao" in df.columns:
+        df_orgao = (
+            df.groupby("siglaorgao")
+            .agg(
+                Votos=("id_voto", "count"),
+                Nota_Media=("avaliacao_voto_servico", "mean"),
+                Satisfeitos=("Classificacao", lambda x: (x == "Satisfeito").sum()),
+            )
+            .reset_index()
+        )
+        df_orgao["% Satisfeitos"] = (df_orgao["Satisfeitos"] / df_orgao["Votos"] * 100).round(1)
+        df_orgao = df_orgao.sort_values("Nota_Media", ascending=False)
+
+        col_rank, col_table_sat = st.columns([2, 1])
+
+        with col_rank:
+            fig_rank = px.bar(
+                df_orgao.head(15),
+                x="Nota_Media",
+                y="siglaorgao",
+                orientation="h",
+                color="Nota_Media",
+                color_continuous_scale="RdYlGn",
+                range_color=[1, 5],
+                text="Nota_Media",
+                labels={"siglaorgao": "Órgão", "Nota_Media": "Nota Média"},
+            )
+            fig_rank.update_traces(texttemplate='%{text:.2f}', textposition="outside")
+            fig_rank.update_layout(
+                height=450,
+                margin=dict(t=10, b=10, l=10, r=30),
+                yaxis=dict(autorange="reversed"),
+                coloraxis_showscale=False,
+            )
+            st.plotly_chart(fig_rank, use_container_width=True)
+
+        with col_table_sat:
+            st.dataframe(
+                df_orgao[["siglaorgao", "Votos", "Nota_Media", "% Satisfeitos"]]
+                .rename(columns={
+                    "siglaorgao": "Órgão",
+                    "Nota_Media": "Nota Média",
+                }),
+                use_container_width=True,
+                hide_index=True,
+            )
+    else:
+        st.info("Informação de órgão não disponível nos dados de votos.")

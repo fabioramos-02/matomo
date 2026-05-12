@@ -154,7 +154,7 @@ st.sidebar.title("Filtros")
 
 fonte = st.sidebar.radio(
     "Fonte de Dados",
-    ["Portal (Matomo)", "MS Digital (GA4)", "Cartas de Serviço (PostgreSQL)"],
+    ["Portal", "MS Digital", "Cartas de Serviço"],
 )
 st.sidebar.markdown("---")
 
@@ -172,7 +172,7 @@ if fonte == "Portal (Matomo)":
     default_idx = next((i for i, id_ in enumerate(sites_map.values()) if str(id_) == str(MATOMO_SITE_ID)), 0)
     selected_site_name = st.sidebar.selectbox("Site", list(sites_map.keys()), index=default_idx)
     selected_site_id = sites_map[selected_site_name]
-elif fonte == "Cartas de Serviço (PostgreSQL)":
+elif fonte == "Cartas de Serviço":
     st.sidebar.info("🗄️ Dados lidos direto do banco PostgreSQL da SETDIG.")
 else:
     pass
@@ -210,8 +210,8 @@ else:
 # ==========================================
 _fonte_labels = {
     "Portal (Matomo)": "Portal ms.gov.br",
-    "MS Digital (GA4)": "MS Digital App (GA4)",
-    "Cartas de Serviço (PostgreSQL)": "Cartas de Serviço",
+    "MS Digital": "MS Digital App",
+    "Cartas de Serviço": "Cartas de Serviço",
 }
 fonte_label = _fonte_labels.get(fonte, fonte)
 periodo_str = (
@@ -221,7 +221,7 @@ periodo_str = (
 )
 
 st.title(f"📊 Dashboard Analítico — {fonte_label}")
-if fonte != "Cartas de Serviço (PostgreSQL)":
+if fonte != "Cartas de Serviço":
     st.markdown(f"**🗓️ Período:** {periodo_str}")
 
 # ==========================================
@@ -274,7 +274,7 @@ if fonte == "Portal (Matomo)":
     with tab4:
         render_tab4_jornada(df_pages, api, period, date, selected_site_id)
 
-elif fonte == "Cartas de Serviço (PostgreSQL)":
+elif fonte == "Cartas de Serviço":
     with st.spinner("Carregando dados das Cartas de Serviço..."):
         df_cs_inventory = load_service_cards_inventory()
         df_cs_errors = load_service_cards_errors()

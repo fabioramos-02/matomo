@@ -132,8 +132,18 @@ def render_tab3_qualidade(df_errors: pd.DataFrame):
                                    key="cartas_erros_pendentes")
     df_tabela = df_errors[~df_errors["atendido"]] if filtro_pendentes else df_errors.copy()
 
+    # Link dinâmico
+    if "slug_categoria" in df_tabela.columns and "slug_servico" in df_tabela.columns:
+        df_tabela["Link"] = (
+            "https://www.ms.gov.br/" + 
+            df_tabela["slug_categoria"].fillna("servicos") + "/" + 
+            df_tabela["slug_servico"]
+        )
+    else:
+        df_tabela["Link"] = ""
+
     cols_tabela = [c for c in [
-        "siglaorgao", "titulo_servico", "conteudo",
+        "siglaorgao", "titulo_servico", "Link", "conteudo",
         "atendido", "corrigido_erro", "resolucao_erro",
         "reportado_erro", "data_criacao_erro", "data_atualizacao_erro"
     ] if c in df_tabela.columns]
@@ -141,6 +151,7 @@ def render_tab3_qualidade(df_errors: pd.DataFrame):
     rename_map = {
         "siglaorgao": "Órgão",
         "titulo_servico": "Serviço",
+        "Link": "Acessar Serviço",
         "conteudo": "Tipo de Erro",
         "atendido": "Atendido",
         "corrigido_erro": "Corrigido",
@@ -152,6 +163,12 @@ def render_tab3_qualidade(df_errors: pd.DataFrame):
 
     st.dataframe(
         df_tabela[cols_tabela].rename(columns=rename_map),
+        column_config={
+            "Acessar Serviço": st.column_config.LinkColumn(
+                "Acessar Serviço",
+                display_text="🔗 Abrir Serviço"
+            )
+        },
         use_container_width=True,
         hide_index=True,
     )

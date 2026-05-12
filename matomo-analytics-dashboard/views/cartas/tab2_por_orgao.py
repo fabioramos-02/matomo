@@ -21,6 +21,9 @@ def render_tab2_por_orgao(df: pd.DataFrame):
         if col in df.columns:
             df[col] = df[col].astype(bool)
 
+    # Filtra apenas ativos
+    df = df[df["servico_ativo"]].copy()
+
     # ------------------------------------------------------------------ #
     # Filtro de Órgão                                                      #
     # ------------------------------------------------------------------ #
@@ -36,12 +39,13 @@ def render_tab2_por_orgao(df: pd.DataFrame):
     ativos_filter = df_filter["servico_ativo"].sum()
     digitais_filter = df_filter[df_filter["digital"] | df_filter["online"]].shape[0]
     pct_d = (digitais_filter / total_filter * 100) if total_filter > 0 else 0
+    pct_p = (100 - pct_d) if total_filter > 0 else 0
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Serviços", f"{total_filter:,}")
-    c2.metric("Ativos", f"{int(ativos_filter):,}")
-    c3.metric("Digitais / Online", f"{digitais_filter:,}")
-    c4.metric("% Digital", f"{pct_d:.1f}%")
+    c1.metric("Serviços Ativos", f"{total_filter:,}")
+    c2.metric("Digitais / Online", f"{digitais_filter:,}")
+    c3.metric("% Digital", f"{pct_d:.1f}%")
+    c4.metric("% Presencial", f"{pct_p:.1f}%")
 
     st.markdown("---")
 
@@ -63,6 +67,7 @@ def render_tab2_por_orgao(df: pd.DataFrame):
         )
         df_rank["% Total"] = (df_rank["Total"] / len(df) * 100).round(1)
         df_rank["% Digital"] = (df_rank["Digitais"] / df_rank["Total"].replace(0, 1) * 100).round(1)
+        df_rank["% Presencial"] = (100 - df_rank["% Digital"]).round(1)
 
         col_bar, col_table = st.columns([3, 2])
 
@@ -88,7 +93,7 @@ def render_tab2_por_orgao(df: pd.DataFrame):
 
         with col_table:
             st.dataframe(
-                df_rank[["siglaorgao", "nome_orgao", "Total", "Ativos", "Digitais", "% Total", "% Digital"]]
+                df_rank[["siglaorgao", "nome_orgao", "Ativos", "Digitais", "% Presencial", "% Digital"]]
                 .rename(columns={"siglaorgao": "Sigla", "nome_orgao": "Órgão"}),
                 use_container_width=True,
                 hide_index=True,
@@ -104,7 +109,6 @@ def render_tab2_por_orgao(df: pd.DataFrame):
         canal_labels = []
         for _, row in df_filter.iterrows():
             is_digital = row.get("digital", False) or row.get("online", False)
-            is_presencial = not row.get("digital", False) and not row.get("online", False)
             if is_digital and row.get("agendavel", False):
                 canal_labels.append("Híbrido")
             elif is_digital:
@@ -114,6 +118,16 @@ def render_tab2_por_orgao(df: pd.DataFrame):
 
         df_filter = df_filter.copy()
         df_filter["Canal"] = canal_labels
+        
+        # Garante que as colunas de slug existem para evitar KeyError
+        if "slug_categoria" in df_filter.columns and "slug_servico" in df_filter.columns:
+            df_filter["Link"] = (
+                "https://www.ms.gov.br/" + 
+                df_filter["slug_categoria"].fillna("servicos") + "/" + 
+                df_filter["slug_servico"]
+            )
+        else:
+            df_filter["Link"] = ""
 
         col_pie, col_list = st.columns([1, 2])
 
@@ -131,18 +145,26 @@ def render_tab2_por_orgao(df: pd.DataFrame):
             st.plotly_chart(fig_pie, use_container_width=True)
 
         with col_list:
-            cols_show = [c for c in ["titulo_servico", "servico_ativo", "Canal", "custo", "tempo", "tipo_tempo"]
+            cols_show = [c for c in ["titulo_servico", "Link", "Canal", "custo", "tempo", "tipo_tempo"]
                          if c in df_filter.columns]
             st.dataframe(
                 df_filter[cols_show].rename(
                     columns={
                         "titulo_servico": "Serviço",
-                        "servico_ativo": "Ativo",
+                        "Link": "Acessar Serviço",
                         "custo": "Custo",
                         "tempo": "Prazo",
                         "tipo_tempo": "Unidade",
                     }
                 ),
+                column_config={
+                    "Acessar Serviço": st.column_config.LinkColumn(
+                        "Acessar Serviço",
+                        help="Clique para abrir a carta de serviço oficial",
+                        validate=r"^https://",
+                        display_text="🔗 Abrir Serviço"
+                    )
+                },
                 use_container_width=True,
                 hide_index=True,
             )

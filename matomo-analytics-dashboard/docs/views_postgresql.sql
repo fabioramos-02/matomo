@@ -14,6 +14,8 @@ CREATE OR REPLACE VIEW vw_cartas_servico AS
 SELECT
     s.idservico,
     s.titulo_servico,
+    s.slug                      AS slug_servico,
+    t.slug                      AS slug_categoria,
     s.nome_popular,
     o.siglaorgao,
     o.nome_orgao,
@@ -28,8 +30,9 @@ SELECT
     s.data_criacao_servico,
     s.data_atualizacao_servico,
     s.data_revisao_servico
-FROM servico s
-LEFT JOIN orgao o ON s.idorgao = o.idorgao;
+FROM gerenciamento_servicos s
+LEFT JOIN gerenciamento_orgaos o ON s.idorgao = o.idorgao
+LEFT JOIN gerenciamento_temas t ON t.id = s.tema_id;
 
 
 -- -----------------------------------------------------------------------------

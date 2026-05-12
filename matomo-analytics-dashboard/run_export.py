@@ -25,6 +25,11 @@ from utils.data_processor import (
     process_search_keywords,
     process_services_trend,
 )
+from utils.cartas_data_loaders import (
+    load_service_cards_inventory,
+    load_service_cards_errors,
+    load_service_cards_votes,
+)
 
 # Importar Exportador
 from utils.qlik_exporter import export_to_qlik
@@ -121,7 +126,16 @@ def run():
     except Exception as e:
         print(f"❌ Erro ao processar Matomo: {e}")
 
-    # 5. Exportar tudo
+    # 5. Buscar e Processar Dados — Cartas de Serviço (PostgreSQL)
+    print("🗄️ Buscando dados do PostgreSQL (Cartas de Serviço)...")
+    try:
+        data_to_export["cartas_inventory"] = load_service_cards_inventory()
+        data_to_export["cartas_errors"] = load_service_cards_errors()
+        data_to_export["cartas_votes"] = load_service_cards_votes()
+    except Exception as e:
+        print(f"❌ Erro ao processar PostgreSQL: {e}")
+
+    # 6. Exportar tudo
     export_to_qlik(data_to_export, output_dir="exports")
     print("✅ Exportação concluída com sucesso!")
 

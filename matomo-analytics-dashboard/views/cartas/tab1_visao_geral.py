@@ -94,7 +94,7 @@ def render_tab1_visao_geral(df: pd.DataFrame):
         st.markdown("#### Novos Serviços por Ano")
         if "data_criacao_servico" in df.columns:
             df_temp = df.copy()
-            df_temp["data_criacao_servico"] = pd.to_datetime(df_temp["data_criacao_servico"], errors="coerce")
+            df_temp["data_criacao_servico"] = pd.to_datetime(df_temp["data_criacao_servico"], errors="coerce", utc=True)
             df_temp["Ano"] = df_temp["data_criacao_servico"].dt.year.dropna().astype(int)
             df_ano = df_temp.groupby("Ano").size().reset_index(name="Serviços")
             df_ano = df_ano[df_ano["Ano"] > 2010]

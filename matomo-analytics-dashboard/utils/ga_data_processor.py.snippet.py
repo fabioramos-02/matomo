@@ -1,3 +1,4 @@
+import pandas as pd
 
 def process_ga_overview(data: list) -> dict:
     """Retorna dict com KPIs totais e DataFrame new vs returning."""

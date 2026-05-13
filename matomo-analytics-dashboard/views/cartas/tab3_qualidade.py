@@ -29,7 +29,7 @@ def render_tab3_qualidade(df_errors: pd.DataFrame):
 
     for col in ["data_criacao_erro", "data_atualizacao_erro"]:
         if col in df_errors.columns:
-            df_errors[col] = pd.to_datetime(df_errors[col], errors="coerce")
+            df_errors[col] = pd.to_datetime(df_errors[col], errors="coerce", utc=True)
 
     total_erros = len(df_errors)
     atendidos = int(df_errors["atendido"].sum()) if "atendido" in df_errors.columns else 0

@@ -35,7 +35,7 @@ def render_tab4_satisfacao(df_votes: pd.DataFrame):
         return
 
     df = df_votes.copy()
-    df["data_voto"] = pd.to_datetime(df["data_voto"], errors="coerce")
+    df["data_voto"] = pd.to_datetime(df["data_voto"], errors="coerce", utc=True)
     df["Classificacao"] = df["avaliacao_voto_servico"].apply(_classify_vote)
 
     total_votos = len(df)

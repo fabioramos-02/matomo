@@ -16,6 +16,14 @@ def export_to_qlik(dataframes_dict, output_dir="exports"):
     for name, df in dataframes_dict.items():
         if df is not None and not df.empty:
             filename = os.path.join(output_dir, f"{name}.csv")
+            
+            # Sanitizar colunas de texto para evitar quebra do CSV (remover ; e \n)
+            for col in df.select_dtypes(include=['object', 'string']).columns:
+                df[col] = df[col].fillna('')
+                df[col] = df[col].astype(str)
+                df[col] = df[col].str.replace(r'\r+|\n+', ' ', regex=True)
+                df[col] = df[col].str.replace(';', ',', regex=False)
+
             # utf-8-sig garante que o Qlik reconheça acentuação sem configurações extras
             df.to_csv(filename, index=False, encoding='utf-8-sig', sep=';')
             print(f"Exportado: {filename} ({len(df)} linhas)")

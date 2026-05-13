@@ -5,6 +5,7 @@ Fallback automático para modo mock se o banco não estiver disponível.
 """
 import streamlit as st
 import pandas as pd
+import os
 
 # --------------------------------------------------------------------------- #
 # Detecção de disponibilidade das libs                                         #
@@ -17,11 +18,18 @@ except ImportError:
 
 
 def _get_db_secret(key: str, default=None):
-    """Lê um segredo do st.secrets com fallback silencioso."""
+    """
+    Lê um segredo do st.secrets com fallback para variáveis de ambiente.
+    """
+    # 1. Tenta st.secrets (Streamlit)
     try:
-        return st.secrets[key]
+        if key in st.secrets:
+            return st.secrets[key]
     except Exception:
-        return default
+        pass
+    
+    # 2. Tenta variáveis de ambiente (SO/Docker)
+    return os.getenv(key, default)
 
 
 def _build_connection_url() -> str:
@@ -31,6 +39,11 @@ def _build_connection_url() -> str:
     password = _get_db_secret("PASSWORD", "")
     # secrets.toml usa BANCO; aceita DATABASE como fallback
     database = _get_db_secret("BANCO") or _get_db_secret("DATABASE", "postgres")
+    
+    if not user or not password:
+        # Se não houver usuário/senha, não tenta montar URL de produção
+        return None
+        
     return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
 
 
@@ -58,7 +71,7 @@ def get_pg_engine():
         return engine
     except Exception as e:
         st.warning(
-            f"⚠️ Banco de dados indisponível — exibindo dados demonstrativos. "
+            f"⚠️ Conexão com o banco falhou — tentando carregar dados offline (CSV). "
             f"({type(e).__name__})"
         )
         return None

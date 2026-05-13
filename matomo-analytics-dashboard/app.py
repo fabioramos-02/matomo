@@ -154,7 +154,7 @@ st.sidebar.title("Filtros")
 
 fonte = st.sidebar.radio(
     "Fonte de Dados",
-    ["Portal", "MS Digital", "Cartas de Serviço"],
+    ["Portal (Matomo)", "MS Digital (GA4)", "Cartas de Serviço"],
 )
 st.sidebar.markdown("---")
 
@@ -167,6 +167,8 @@ if fonte == "Portal (Matomo)":
     if not sites_data:
         st.sidebar.error("Erro ao buscar sites.")
         st.stop()
+
+        
     sites_map = {site["name"]: site["idsite"] for site in sites_data}
     sites_map["Portal de Serviços MS"] = int(MATOMO_SITE_ID)
     default_idx = next((i for i, id_ in enumerate(sites_map.values()) if str(id_) == str(MATOMO_SITE_ID)), 0)
@@ -210,7 +212,7 @@ else:
 # ==========================================
 _fonte_labels = {
     "Portal (Matomo)": "Portal ms.gov.br",
-    "MS Digital": "MS Digital App",
+    "MS Digital (GA4)": "MS Digital App",
     "Cartas de Serviço": "Cartas de Serviço",
 }
 fonte_label = _fonte_labels.get(fonte, fonte)

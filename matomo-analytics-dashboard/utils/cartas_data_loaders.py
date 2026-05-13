@@ -103,14 +103,26 @@ def _load_from_csv(filename: str) -> pd.DataFrame:
     path = os.path.join("exports", filename)
     if os.path.exists(path):
         try:
-            df = pd.read_csv(path)
-            # Try to convert datetime columns if they exist
+            # Removido engine='python' pois pode causar AssertionError em alguns arquivos com campos multi-linha
+            df = pd.read_csv(
+                path, 
+                sep=';', 
+                on_bad_lines='skip',
+                encoding='utf-8-sig',
+                low_memory=False
+            )
+            
+            if df.empty:
+                return df
+
+            # Tenta converter colunas de data
             for col in df.columns:
-                if "data_" in col or "created_at" in col or "updated_at" in col:
-                    df[col] = pd.to_datetime(df[col], errors='ignore')
+                if any(x in col for x in ["data_", "created_at", "updated_at"]):
+                    df[col] = pd.to_datetime(df[col], errors='coerce', utc=True)
+            
             return df
         except Exception as e:
-            st.error(f"⚠️ Erro ao ler CSV de fallback ({path}): {e}")
+            st.error(f"⚠️ Erro ao ler CSV de fallback ({path}): {str(e) or repr(e)}")
             return pd.DataFrame()
     else:
         st.warning(f"⚠️ Sem conexão com o banco e arquivo '{path}' não encontrado. Execute 'python run_export.py' para gerar os dados.")

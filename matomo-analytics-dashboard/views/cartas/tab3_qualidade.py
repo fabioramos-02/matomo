@@ -51,10 +51,10 @@ def render_tab3_qualidade(df_errors: pd.DataFrame):
     # KPIs                                                                 #
     # ------------------------------------------------------------------ #
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("📋 Total de Erros", f"{total_erros:,}")
-    c2.metric("✅ Atendidos", f"{atendidos:,}")
-    c3.metric("🔧 Corrigidos", f"{corrigidos:,}")
-    c4.metric("⚠️ Pendentes", f"{pendentes:,}",
+    c1.metric("📋 Total de Erros", f"{int(total_erros)}")
+    c2.metric("✅ Atendidos", f"{int(atendidos)}")
+    c3.metric("🔧 Corrigidos", f"{int(corrigidos)}")
+    c4.metric("⚠️ Pendentes", f"{int(pendentes)}",
               delta=f"{pendentes/total_erros*100:.0f}% do total" if total_erros else None,
               delta_color="inverse")
     c5.metric("⏱️ Tempo Médio Resolução", tempo_str)

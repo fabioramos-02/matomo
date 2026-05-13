@@ -42,8 +42,8 @@ def render_tab2_por_orgao(df: pd.DataFrame):
     pct_p = (100 - pct_d) if total_filter > 0 else 0
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Serviços Ativos", f"{total_filter:,}")
-    c2.metric("Digitais / Online", f"{digitais_filter:,}")
+    c1.metric("Serviços Ativos", f"{int(total_filter)}")
+    c2.metric("Digitais / Online", f"{int(digitais_filter)}")
     c3.metric("% Digital", f"{pct_d:.1f}%")
     c4.metric("% Presencial", f"{pct_p:.1f}%")
 

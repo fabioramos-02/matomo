@@ -50,10 +50,10 @@ def render_tab4_satisfacao(df_votes: pd.DataFrame):
     # KPIs                                                                 #
     # ------------------------------------------------------------------ #
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("🗳️ Total de Votos", f"{total_votos:,}")
-    c2.metric("😊 Satisfeitos", f"{satisfeitos:,}", f"{pct_sat:.1f}%")
-    c3.metric("😐 Neutros", f"{neutros:,}")
-    c4.metric("😞 Insatisfeitos", f"{insatisfeitos:,}", f"-{pct_insat:.1f}%", delta_color="inverse")
+    c1.metric("🗳️ Total de Votos", f"{int(total_votos)}")
+    c2.metric("😊 Satisfeitos", f"{int(satisfeitos)}", f"{pct_sat:.1f}%")
+    c3.metric("😐 Neutros", f"{int(neutros)}")
+    c4.metric("😞 Insatisfeitos", f"{int(insatisfeitos)}", f"-{pct_insat:.1f}%", delta_color="inverse")
     c5.metric("⭐ Nota Média", f"{nota_media:.2f}/5" if not pd.isna(nota_media) else "N/A")
 
     st.markdown("---")

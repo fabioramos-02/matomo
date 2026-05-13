@@ -44,12 +44,12 @@ def render_tab1_visao_geral(df: pd.DataFrame):
     # KPIs                                                                 #
     # ------------------------------------------------------------------ #
     col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
-    col1.metric("📦 Total", f"{total:,}")
-    col2.metric("✅ Ativos", f"{ativos:,}")
-    col3.metric("❌ Inativos", f"{inativos:,}")
-    col4.metric("💻 Digitais", f"{digitais:,}")
-    col5.metric("🏢 Presenciais", f"{presenciais:,}")
-    col6.metric("🔀 Híbridos", f"{hibridos:,}")
+    col1.metric("📦 Total", f"{int(total)}")
+    col2.metric("✅ Ativos", f"{int(ativos)}")
+    col3.metric("❌ Inativos", f"{int(inativos)}")
+    col4.metric("💻 Digitais", f"{int(digitais)}")
+    col5.metric("🏢 Presenciais", f"{int(presenciais)}")
+    col6.metric("🔀 Híbridos", f"{int(hibridos)}")
     col7.metric("📊 % Digital", f"{pct_digital:.1f}%")
 
     st.markdown("---")
@@ -132,9 +132,9 @@ def render_tab1_visao_geral(df: pd.DataFrame):
             .reset_index()
         )
         df_orgao["Inativos"] = df_orgao["Total"] - df_orgao["Ativos"]
-        df_orgao["% do Total"] = (df_orgao["Ativos"] / ativos * 100).round(1).astype(str) + "%"
+        df_orgao["% do Total de ativos"] = (df_orgao["Ativos"] / ativos * 100).round(1).astype(str) + "%"
         df_orgao = df_orgao.sort_values("Total", ascending=False).rename(
             columns={"siglaorgao": "Sigla", "nome_orgao": "Órgão"}
         )
-        st.dataframe(df_orgao[["Sigla", "Órgão", "Total", "Ativos", "Inativos", "% do Total"]],
+        st.dataframe(df_orgao[["Sigla", "Órgão", "Total", "Ativos", "Inativos", "% do Total de ativos"]],
                      use_container_width=True, hide_index=True)

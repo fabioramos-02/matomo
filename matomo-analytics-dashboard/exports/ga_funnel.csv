@@ -1,4 +1,5 @@
 ﻿Evento;Ocorrências;Usuários
+<<<<<<< HEAD
 first_open;8863;8794
 session_start;135526;47271
 screen_view;253775;29501
@@ -12,3 +13,18 @@ app_update;3137;3121
 app_exception;268;211
 app_clear_data;36;30
 (not set);0;5886
+=======
+first_open;8849;8782
+session_start;135394;47225
+screen_view;253571;29486
+user_engagement;324029;41278
+erro_interno;388814;41614
+use_feature;128665;25037
+click;31841;11781
+os_update;8671;7985
+app_remove;3547;3257
+app_update;3135;3119
+app_exception;268;211
+app_clear_data;36;30
+(not set);0;5871
+>>>>>>> 26e9069fb279ef38420e4e05273578da3f94919c

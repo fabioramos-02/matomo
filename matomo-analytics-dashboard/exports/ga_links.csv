@@ -1,4 +1,5 @@
 ﻿Destino;Cliques;Usuários
+<<<<<<< HEAD
 MS.gov;5837;4351
 Painel do Aluno;5107;1742
 Nota MS Premiada;4037;2790
@@ -17,6 +18,26 @@ Caminho Certo;370;323
 Outros;368;255
 Agendamento de RG;348;244
 Lista de Eventos;322;277
+=======
+MS.gov;5835;4349
+Painel do Aluno;5101;1741
+Nota MS Premiada;4033;2788
+Diário Oficial;2991;1095
+Estoque de Sangue - Hemosul;1577;1226
+Exames LACEN;1367;1136
+Licenciamento e Multas;1292;810
+Baixar CRLV;1092;666
+Boleto habitacional;1088;875
+MS Qualifica;796;534
+IPVA;777;589
+Autorização de Pesca (Solicitação);665;269
+Exames;412;225
+Emissão de Certificados de Eventos da SES;396;359
+Caminho Certo;368;322
+Outros;368;255
+Agendamento de RG;348;244
+Lista de Eventos;320;275
+>>>>>>> 26e9069fb279ef38420e4e05273578da3f94919c
 Antecedentes Criminais;262;202
 Estoque de Medicamento Especializado;244;230
 Agendamento;225;126

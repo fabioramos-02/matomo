@@ -100,7 +100,8 @@ ORDER BY v.created_at DESC;
 # =========================================================================== #
 
 def _load_from_csv(filename: str) -> pd.DataFrame:
-    path = os.path.join("exports", filename)
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(base_dir, "exports", filename)
     if os.path.exists(path):
         try:
             # Removido engine='python' pois pode causar AssertionError em alguns arquivos com campos multi-linha

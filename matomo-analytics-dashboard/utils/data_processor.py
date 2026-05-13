@@ -60,25 +60,62 @@ CATEGORIAS_MAPEAMENTO = {
 }
 
 def identify_service_cards(df):
-    """Filtra o DataFrame para encontrar 'Cartas de Serviço'."""
+    """
+    Filtra o DataFrame do Matomo para encontrar 'Cartas de Serviço'.
+    Cruza com o inventário oficial (CSV) para garantir que os slugs e títulos estão corretos.
+    """
     if df.empty:
         return df
-        
+
+    # Tenta carregar o inventário oficial para limpeza
+    import os
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    inv_path = os.path.join(base_dir, "exports", "cartas_inventory.csv")
+    
+    inventory_map = {}
+    if os.path.exists(inv_path):
+        try:
+            df_inv = pd.read_csv(inv_path, sep=';', on_bad_lines='skip', encoding='utf-8-sig')
+            if not df_inv.empty:
+                # Cria um mapa {(cat_slug, svc_slug): (titulo, categoria_nome)}
+                for _, inv_row in df_inv.iterrows():
+                    key = (str(inv_row['slug_categoria']).lower(), str(inv_row['slug_servico']).lower())
+                    inventory_map[key] = {
+                        'titulo': inv_row['titulo_servico'],
+                        'categoria_nome': inv_row.get('nome_categoria', inv_row['slug_categoria'].replace('-', ' ').title())
+                    }
+            print(f"✅ Inventário carregado para cruzamento: {len(inventory_map)} itens.")
+        except Exception as e:
+            print(f"⚠️ Erro ao carregar inventário para limpeza: {e}")
+
     rows = []
     for _, row in df.iterrows():
-        url = row['URL']
+        url = str(row['URL'])
         parts = [p for p in url.split('/') if p]
         if len(parts) >= 2:
             categoria_raw = parts[0].lower()
             slug_raw = parts[1]
-            if categoria_raw in CATEGORIAS_MAPEAMENTO:
+            
+            # 1. Tenta Match Exato com Inventário (Prioridade)
+            key = (categoria_raw, slug_raw.lower())
+            if key in inventory_map:
+                inv_data = inventory_map[key]
+                rows.append({
+                    'URL_Original': url,
+                    'slug_servico': slug_raw,
+                    'slug_categoria': categoria_raw,
+                    'Categoria': inv_data['categoria_nome'],
+                    'Nome do Serviço': inv_data['titulo'],
+                    'Visitas': row['Visitas'],
+                    'Link': f"https://www.ms.gov.br/{categoria_raw}/{slug_raw}"
+                })
+            # 2. Fallback para Regex (Se não houver inventário ou item novo)
+            elif categoria_raw in CATEGORIAS_MAPEAMENTO:
                 categoria_nome = CATEGORIAS_MAPEAMENTO[categoria_raw]
-                has_hyphen = '-' in slug_raw
                 no_file_ext = not re.search(r'\.(jpg|png|pdf|css|js)$', slug_raw.lower())
-                if has_hyphen and no_file_ext:
-                    servico_nome = re.sub(r'\d+$', '', slug_raw)
-                    servico_nome = servico_nome.replace('-', ' ').title()
-                    link = f"https://www.ms.gov.br/{categoria_raw}/{slug_raw}"
+                # Filtro heurístico: slugs de serviço costumam ter hífens
+                if '-' in slug_raw and no_file_ext:
+                    servico_nome = re.sub(r'\d+$', '', slug_raw).replace('-', ' ').title()
                     rows.append({
                         'URL_Original': url,
                         'slug_servico': slug_raw,
@@ -86,11 +123,12 @@ def identify_service_cards(df):
                         'Categoria': categoria_nome,
                         'Nome do Serviço': servico_nome,
                         'Visitas': row['Visitas'],
-                        'Link': link
+                        'Link': f"https://www.ms.gov.br/{categoria_raw}/{slug_raw}"
                     })
 
     service_df = pd.DataFrame(rows)
     if not service_df.empty:
+        # Agrupa para somar visitas de URLs que podem ter variações de parâmetros mas mesmo slug
         service_df = service_df.groupby(['slug_servico', 'slug_categoria', 'Categoria', 'Nome do Serviço', 'Link'], as_index=False).agg({'Visitas': 'sum', 'URL_Original': 'first'})
         service_df = service_df.sort_values(by='Visitas', ascending=False).reset_index(drop=True)
         

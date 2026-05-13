@@ -256,6 +256,7 @@ if fonte == "Portal (Matomo)":
     trend_granularity = 'day'
 
     df_svc_all = identify_service_cards(df_pages)
+    st.session_state["df_svc_all"] = df_svc_all
     top5_matomo = tuple(df_svc_all['Nome do Serviço'].head(5).tolist()) if not df_svc_all.empty else ()
 
     if period != "day" and matomo_start != matomo_end and top5_matomo:

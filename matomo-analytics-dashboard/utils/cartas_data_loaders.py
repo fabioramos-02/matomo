@@ -122,10 +122,12 @@ def _load_from_csv(filename: str) -> pd.DataFrame:
             
             return df
         except Exception as e:
-            st.error(f"⚠️ Erro ao ler CSV de fallback ({path}): {str(e) or repr(e)}")
+            import logging
+            logging.error(f"⚠️ Erro ao ler CSV de fallback ({path}): {str(e) or repr(e)}")
             return pd.DataFrame()
     else:
-        st.warning(f"⚠️ Sem conexão com o banco e arquivo '{path}' não encontrado. Execute 'python run_export.py' para gerar os dados.")
+        import logging
+        logging.warning(f"⚠️ Sem conexão com o banco e arquivo '{path}' não encontrado.")
         return pd.DataFrame()
 
 

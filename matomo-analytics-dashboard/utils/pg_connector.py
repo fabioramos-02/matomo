@@ -70,10 +70,8 @@ def get_pg_engine():
             conn.execute(text("SELECT 1"))
         return engine
     except Exception as e:
-        st.warning(
-            f"⚠️ Conexão com o banco falhou — tentando carregar dados offline (CSV). "
-            f"({type(e).__name__})"
-        )
+        import logging
+        logging.warning(f"Conexão com o banco falhou: {e}")
         return None
 
 

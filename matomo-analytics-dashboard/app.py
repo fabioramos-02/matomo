@@ -277,6 +277,10 @@ if fonte == "Portal (Matomo)":
         render_tab4_jornada(df_pages, api, period, date, selected_site_id)
 
 elif fonte == "Cartas de Serviço":
+    from utils.pg_connector import is_db_available
+    if not is_db_available():
+        st.toast("⚡ Operando em modo offline (CSV).", icon="⚡")
+        
     with st.spinner("Carregando dados das Cartas de Serviço..."):
         df_cs_inventory = load_service_cards_inventory()
         df_cs_errors = load_service_cards_errors()

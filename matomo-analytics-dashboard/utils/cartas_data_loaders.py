@@ -144,13 +144,37 @@ def load_service_cards_inventory() -> pd.DataFrame:
     return df if not df.empty else _load_from_csv("cartas_inventory.csv")
 
 
+def _enrich_with_slugs(df: pd.DataFrame) -> pd.DataFrame:
+    """Helper para adicionar slug_servico e slug_categoria se faltarem (ex: fallback CSV antigo)."""
+    if df.empty or ("slug_servico" in df.columns and "slug_categoria" in df.columns):
+        return df
+    
+    # Se não tem slug, tenta pegar do inventário
+    df_inv = load_service_cards_inventory()
+    if not df_inv.empty:
+        # Pega apenas colunas necessárias para o join
+        inv_subset = df_inv[['idservico', 'slug_servico', 'slug_categoria']].drop_duplicates()
+        # Garante tipos iguais para o join
+        df['idservico'] = df['idservico'].astype(str)
+        inv_subset['idservico'] = inv_subset['idservico'].astype(str)
+        
+        # Remove colunas se existirem mas forem nulas (raro mas possível)
+        cols_to_drop = [c for c in ['slug_servico', 'slug_categoria'] if c in df.columns]
+        if cols_to_drop:
+            df = df.drop(columns=cols_to_drop)
+            
+        df = df.merge(inv_subset, on='idservico', how='left')
+    return df
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_service_cards_errors() -> pd.DataFrame:
     """Erros reportados: gerenciamento_servicoserros (sem IP e sem usuário)."""
     if not is_db_available():
         return _load_from_csv("cartas_errors.csv")
     df = run_query(_SQL_ERRORS)
-    return df if not df.empty else _load_from_csv("cartas_errors.csv")
+    df = df if not df.empty else _load_from_csv("cartas_errors.csv")
+    return _enrich_with_slugs(df)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -159,7 +183,8 @@ def load_service_cards_votes() -> pd.DataFrame:
     if not is_db_available():
         return _load_from_csv("cartas_votes.csv")
     df = run_query(_SQL_VOTES)
-    return df if not df.empty else _load_from_csv("cartas_votes.csv")
+    df = df if not df.empty else _load_from_csv("cartas_votes.csv")
+    return _enrich_with_slugs(df)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)

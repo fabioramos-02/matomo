@@ -66,8 +66,9 @@ def render_tab3_qualidade(df_errors: pd.DataFrame):
     # Erros por Órgão                                                      #
     # ------------------------------------------------------------------ #
     with col_left:
-        st.markdown("#### Erros por Órgão")
+        st.markdown("#### 🏢 Erros por Órgão")
         if "siglaorgao" in df_errors.columns:
+            # Agrupa dados (Sem limite de Top 10 para usar scroll)
             df_orgao = (
                 df_errors.groupby("siglaorgao")
                 .agg(
@@ -78,7 +79,11 @@ def render_tab3_qualidade(df_errors: pd.DataFrame):
                 .reset_index()
                 .sort_values("Total", ascending=True)
             )
+            # Calcula pendentes
             df_orgao["Pendentes"] = df_orgao["Total"] - df_orgao["Atendidos"]
+            
+            # Altura dinâmica para manter volume das barras
+            dynamic_height = max(400, len(df_orgao) * 40)
 
             fig = px.bar(
                 df_orgao,
@@ -87,15 +92,39 @@ def render_tab3_qualidade(df_errors: pd.DataFrame):
                 orientation="h",
                 barmode="stack",
                 color_discrete_map={"Atendidos": "#22C55E", "Pendentes": "#EF4444"},
-                labels={"siglaorgao": "Órgão", "value": "Erros", "variable": "Status"},
+                labels={"siglaorgao": "Órgão", "value": "Quantidade de Erros", "variable": "Status"},
+                template="plotly_white"
             )
+            
             fig.update_layout(
-                height=380,
-                margin=dict(t=10, b=10, l=10, r=10),
-                legend_title_text="Status",
-                yaxis=dict(autorange="reversed"),
+                height=dynamic_height, 
+                margin=dict(t=30, b=10, l=10, r=10),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                bargap=0.3,
+                yaxis=dict(
+                    title="",
+                    tickfont=dict(size=11, color="#4B5563"),
+                ),
+                xaxis=dict(
+                    title="Volume de Erros Reportados",
+                    gridcolor="#F3F4F6"
+                ),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
             )
-            st.plotly_chart(fig, use_container_width=True)
+            
+            # Adiciona o total no final da barra
+            fig.update_traces(
+                texttemplate='%{value}', 
+                textposition='inside',
+                insidetextanchor='middle',
+                marker_line_width=0
+            )
+
+            with st.container(height=500):
+                st.plotly_chart(fig, use_container_width=True)
+            
+            st.caption("Utilize a barra de rolagem acima para ver os erros de todos os órgãos.")
 
     # ------------------------------------------------------------------ #
     # Evolução Temporal de Erros                                           #

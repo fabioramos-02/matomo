@@ -186,19 +186,26 @@ period_label = st.sidebar.radio("Período", list(period_map.keys()), index=2)
 period = period_map[period_label]
 
 if period == "range":
-    date_range = st.sidebar.date_input(
-        "De - Até",
-        value=(dt_date.today() - timedelta(days=30), dt_date.today()),
-        max_value=dt_date.today(),
-        format="DD/MM/YYYY",
-    )
-    if len(date_range) != 2:
-        st.sidebar.warning("⚠️ Selecione início e fim.")
-        st.stop()
-    start_d, end_d = date_range
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        start_d = st.date_input(
+            "Data Início",
+            value=dt_date.today() - timedelta(days=30),
+            max_value=dt_date.today(),
+            format="DD/MM/YYYY",
+        )
+    with col2:
+        end_d = st.date_input(
+            "Data Fim",
+            value=dt_date.today(),
+            max_value=dt_date.today(),
+            format="DD/MM/YYYY",
+        )
+    
     if start_d > end_d:
-        st.sidebar.error("❌ Data início > data fim.")
+        st.sidebar.error("❌ A data de início não pode ser maior que a data fim.")
         st.stop()
+        
     date = f"{start_d},{end_d}"
 else:
     single_date = st.sidebar.date_input("Data de referência", value=dt_date.today(),
@@ -223,8 +230,9 @@ periodo_str = (
 )
 
 st.title(f"📊 Dashboard Analítico — {fonte_label}")
-if fonte != "Cartas de Serviço":
-    st.markdown(f"**🗓️ Período:** {periodo_str}")
+st.markdown(f"**🗓️ Período:** {periodo_str}")
+if fonte == "Cartas de Serviço":
+    st.markdown("*Nota: O filtro de data se aplica aos Erros e Votos. O Inventário exibe o retrato global atual.*")
 
 # ==========================================
 # CARREGAMENTO E RENDERIZAÇÃO
@@ -279,13 +287,37 @@ if fonte == "Portal (Matomo)":
 elif fonte == "Cartas de Serviço":
     from utils.pg_connector import is_db_available
     if not is_db_available():
-        st.toast("⚡ Operando em modo offline (CSV).", icon="⚡")
+        st.toast("Operando em modo offline (CSV).")
         
     with st.spinner("Carregando dados das Cartas de Serviço..."):
         df_cs_inventory = load_service_cards_inventory()
         df_cs_errors = load_service_cards_errors()
         df_cs_votes = load_service_cards_votes()
         df_cs_info = load_service_cards_info_reviews()
+
+    # --- Filtros Dinâmicos ---
+    cs_start_str, cs_end_str = to_ga4_date_range(period, date)
+    start_ts = pd.to_datetime(cs_start_str).tz_localize('UTC')
+    end_ts = pd.to_datetime(cs_end_str).tz_localize('UTC') + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+
+    orgaos_disp = sorted(df_cs_inventory["siglaorgao"].dropna().unique().tolist()) if not df_cs_inventory.empty else []
+    selected_orgaos = st.sidebar.multiselect("Filtrar por Órgão", options=orgaos_disp, default=[])
+
+    if selected_orgaos:
+        df_cs_inventory = df_cs_inventory[df_cs_inventory["siglaorgao"].isin(selected_orgaos)]
+        if not df_cs_errors.empty:
+            df_cs_errors = df_cs_errors[df_cs_errors["siglaorgao"].isin(selected_orgaos)]
+        if not df_cs_votes.empty:
+            df_cs_votes = df_cs_votes[df_cs_votes["siglaorgao"].isin(selected_orgaos)]
+
+    if not df_cs_errors.empty and "data_criacao_erro" in df_cs_errors.columns:
+        df_cs_errors["data_criacao_erro"] = pd.to_datetime(df_cs_errors["data_criacao_erro"], utc=True)
+        df_cs_errors = df_cs_errors[(df_cs_errors["data_criacao_erro"] >= start_ts) & (df_cs_errors["data_criacao_erro"] <= end_ts)]
+        
+    if not df_cs_votes.empty and "data_voto" in df_cs_votes.columns:
+        df_cs_votes["data_voto"] = pd.to_datetime(df_cs_votes["data_voto"], utc=True)
+        df_cs_votes = df_cs_votes[(df_cs_votes["data_voto"] >= start_ts) & (df_cs_votes["data_voto"] <= end_ts)]
+
 
     tab_cs1, tab_cs2, tab_cs3, tab_cs4, tab_cs5 = st.tabs([
         "1. Visão Geral",

@@ -38,6 +38,18 @@ def render_tab4_satisfacao(df_votes: pd.DataFrame):
     df["data_voto"] = pd.to_datetime(df["data_voto"], errors="coerce", utc=True)
     df["Classificacao"] = df["avaliacao_voto_servico"].apply(_classify_vote)
 
+    st.markdown("---")
+    # Filtro de Órgão a nível da Aba
+    if "siglaorgao" in df.columns:
+        orgaos_disp = ["Geral (Todos)"] + sorted(df["siglaorgao"].dropna().unique().tolist())
+        orgao_sel = st.selectbox("Analisar Aba de Satisfação por Órgão", orgaos_disp)
+        if orgao_sel != "Geral (Todos)":
+            df = df[df["siglaorgao"] == orgao_sel]
+            
+    if df.empty:
+        st.warning("Nenhum dado encontrado para o filtro selecionado.")
+        return
+
     total_votos = len(df)
     satisfeitos = (df["Classificacao"] == "Satisfeito").sum()
     insatisfeitos = (df["Classificacao"] == "Insatisfeito").sum()
@@ -64,31 +76,68 @@ def render_tab4_satisfacao(df_votes: pd.DataFrame):
     # ------------------------------------------------------------------ #
     with col_gauge:
         st.markdown("#### Índice de Satisfação")
-        # Escala: satisfeitos - insatisfeitos (como NPS)
-        nps_score = pct_sat - pct_insat
+
+        # Cálculo CSAT oficial (Soma das notas / Máximo possível)
+        if "avaliacao_voto_servico" in df.columns and total_votos > 0:
+            soma_notas = df["avaliacao_voto_servico"].sum()
+            max_possivel = total_votos * 5
+            csat_score = (soma_notas / max_possivel) * 100
+        else:
+            csat_score = 0
+
+        # Storytelling do Índice
+        st.markdown("##### 📖 O que significa este índice?")
+        if total_votos == 0:
+            st.info("Não há avaliações suficientes para calcular o índice neste recorte.")
+        elif csat_score >= 80:
+            st.success(f"O nível de aprovação é **Excelente (CSAT: {csat_score:.1f}%)**! A grande maioria dos cidadãos utilizou os serviços sem frustrações. O alvo governamental é manter este ponteiro na zona verde (>80%).")
+        elif csat_score >= 60:
+            st.warning(f"O nível de aprovação está em **Alerta (CSAT: {csat_score:.1f}%)**. Há um volume considerável de usuários insatisfeitos ou neutros. Ajustes na clareza ou na usabilidade podem elevar o serviço de volta à zona de excelência.")
+        else:
+            st.error(f"O nível de aprovação é **Crítico (CSAT: {csat_score:.1f}%)**. A maioria rejeita a experiência atual, apontando para gargalos graves ou falhas de processo que exigem intervenção imediata para reduzir o desgaste do cidadão.")
+
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number+delta",
-            value=pct_sat,
-            delta={"reference": 70, "increasing": {"color": "#22C55E"}, "decreasing": {"color": "#EF4444"}},
-            title={"text": "% Satisfeitos", "font": {"size": 16}},
+            value=csat_score,
+            delta={"reference": 80, "increasing": {"color": "#22C55E"}, "decreasing": {"color": "#EF4444"}},
+            title={"text": "CSAT (%)", "font": {"size": 16}},
             gauge={
                 "axis": {"range": [0, 100], "tickwidth": 1},
                 "bar": {"color": "#2563EB"},
                 "steps": [
-                    {"range": [0, 40], "color": "#FEE2E2"},
-                    {"range": [40, 70], "color": "#FEF9C3"},
-                    {"range": [70, 100], "color": "#DCFCE7"},
+                    {"range": [0, 60], "color": "#FEE2E2"},
+                    {"range": [60, 80], "color": "#FEF9C3"},
+                    {"range": [80, 100], "color": "#DCFCE7"},
                 ],
                 "threshold": {
                     "line": {"color": "#1D4ED8", "width": 4},
                     "thickness": 0.75,
-                    "value": 70,
+                    "value": 80,
                 },
             },
             number={"suffix": "%", "font": {"size": 28}},
         ))
         fig_gauge.update_layout(height=300, margin=dict(t=30, b=10, l=30, r=30))
         st.plotly_chart(fig_gauge, use_container_width=True)
+
+        with st.expander("Entenda como calculamos a satisfação dos cidadãos usando o CSAT"):
+            st.markdown("""
+            **O que é o CSAT?**
+            O Índice de Satisfação (CSAT) mede a avaliação dos cidadãos em uma escala de 1 a 5 estrelas:
+            * ⭐ **1 a 2:** Insatisfeito *(Exige melhorias urgentes)*
+            * ⭐⭐⭐ **3:** Neutro *(Experiência mediana)*
+            * ⭐⭐⭐⭐⭐ **4 a 5:** Satisfeito *(Atende ou supera as expectativas)*
+
+            **Como chegamos a essa porcentagem?**
+            Somamos **todas as estrelas recebidas** e dividimos pela **pontuação máxima possível** (o total de votos multiplicado por 5).
+
+            **Exemplo rápido:**
+            Se 100 pessoas avaliassem o serviço, a nota máxima possível seria 500 estrelas. 
+            Se a soma real das notas dadas por essas pessoas for 400 estrelas, a conta é simples:
+            👉 `(400 / 500) x 100 = 80%`
+
+            Isso significa que o serviço atingiu **80% do seu potencial máximo de excelência**. Quanto maior o número, melhor a experiência entregue ao cidadão!
+            """)
 
         # Distribuição
         dist_df = pd.DataFrame({
@@ -180,51 +229,83 @@ def render_tab4_satisfacao(df_votes: pd.DataFrame):
     st.markdown("---")
     st.markdown("#### 🏛️ Satisfação por Órgão")
     
-    if "siglaorgao" in df.columns:
-        df_orgao = (
-            df.groupby("siglaorgao")
-            .agg(
-                Votos=("id_voto", "count"),
-                Nota_Media=("avaliacao_voto_servico", "mean"),
-                Satisfeitos=("Classificacao", lambda x: (x == "Satisfeito").sum()),
-            )
-            .reset_index()
+    if "siglaorgao" in df.columns and "avaliacao_voto_servico" in df.columns:
+        # 1. Agrupar dados por Órgão e Nota (1 a 5)
+        df_stars = (
+            df.groupby(["siglaorgao", "avaliacao_voto_servico"])
+            .size()
+            .reset_index(name="Votos")
         )
-        df_orgao["% Satisfeitos"] = (df_orgao["Satisfeitos"] / df_orgao["Votos"] * 100).round(1)
-        df_orgao = df_orgao.sort_values("Nota_Media", ascending=False)
+        
+        # 2. Mapear as notas para Emojis de Estrela
+        star_map = {
+            5: "⭐⭐⭐⭐⭐ (5)",
+            4: "⭐⭐⭐⭐ (4)",
+            3: "⭐⭐⭐ (3)",
+            2: "⭐⭐ (2)",
+            1: "⭐ (1)",
+        }
+        df_stars["Estrelas"] = df_stars["avaliacao_voto_servico"].map(star_map)
+        
+        # Ordenar os órgãos pelo total de votos para que as barras fiquem bonitas
+        orgao_totals = df.groupby("siglaorgao").size().reset_index(name="TotalVotos")
+        orgao_totals = orgao_totals.sort_values("TotalVotos", ascending=True)
+        ordem_orgaos = orgao_totals["siglaorgao"].tolist()
+        
+        # 3. Criar Gráfico de Barras Empilhadas
+        fig_stars = px.bar(
+            df_stars,
+            x="Votos",
+            y="siglaorgao",
+            color="Estrelas",
+            orientation="h",
+            barmode="stack",
+            category_orders={
+                "siglaorgao": ordem_orgaos,
+                "Estrelas": [
+                    "⭐⭐⭐⭐⭐ (5)",
+                    "⭐⭐⭐⭐ (4)",
+                    "⭐⭐⭐ (3)",
+                    "⭐⭐ (2)",
+                    "⭐ (1)",
+                ]
+            },
+            color_discrete_map={
+                "⭐⭐⭐⭐⭐ (5)": "#22C55E", # Verde Forte
+                "⭐⭐⭐⭐ (4)": "#86EFAC", # Verde Claro
+                "⭐⭐⭐ (3)": "#FCD34D", # Amarelo (Neutro)
+                "⭐⭐ (2)": "#FCA5A5", # Vermelho Claro
+                "⭐ (1)": "#EF4444",   # Vermelho Forte
+            },
+            labels={"siglaorgao": "Órgão", "Votos": "Quantidade de Votos"}
+        )
+        fig_stars.update_layout(
+            height=500,
+            margin=dict(t=10, b=10, l=10, r=10),
+            legend_title_text="Avaliação",
+            yaxis=dict(title="")
+        )
+        st.plotly_chart(fig_stars, use_container_width=True)
 
-        col_rank, col_table_sat = st.columns([2, 1])
+        # 4. Storytelling de Dados Simples e Objetivo
+        st.markdown("#### 📖 O que os dados nos dizem?")
+        
+        df_5 = df_stars[df_stars["avaliacao_voto_servico"] == 5]
+        top_5_orgao = df_5.loc[df_5["Votos"].idxmax(), "siglaorgao"] if not df_5.empty else "Nenhum"
+        top_5_votos = df_5["Votos"].max() if not df_5.empty else 0
+            
+        df_1 = df_stars[df_stars["avaliacao_voto_servico"] == 1]
+        top_1_orgao = df_1.loc[df_1["Votos"].idxmax(), "siglaorgao"] if not df_1.empty else "Nenhum"
+        top_1_votos = df_1["Votos"].max() if not df_1.empty else 0
+        
+        total_5_estrelas = df_5["Votos"].sum() if not df_5.empty else 0
+        total_1_estrela = df_1["Votos"].sum() if not df_1.empty else 0
 
-        with col_rank:
-            fig_rank = px.bar(
-                df_orgao.head(15),
-                x="Nota_Media",
-                y="siglaorgao",
-                orientation="h",
-                color="Nota_Media",
-                color_continuous_scale="RdYlGn",
-                range_color=[1, 5],
-                text="Nota_Media",
-                labels={"siglaorgao": "Órgão", "Nota_Media": "Nota Média"},
-            )
-            fig_rank.update_traces(texttemplate='%{text:.2f}', textposition="outside")
-            fig_rank.update_layout(
-                height=450,
-                margin=dict(t=10, b=10, l=10, r=30),
-                yaxis=dict(autorange="reversed"),
-                coloraxis_showscale=False,
-            )
-            st.plotly_chart(fig_rank, use_container_width=True)
+        st.info(
+            f"🎯 **Destaque Positivo:** O órgão **{top_5_orgao}** lidera as avaliações de excelência absoluta, concentrando o maior número de notas máximas ({top_5_votos} votos de 5 estrelas). No panorama geral, temos {total_5_estrelas} votos totais de excelência no estado.\n\n"
+            f"🚨 **Ponto de Atenção:** Por outro lado, o órgão **{top_1_orgao}** possui o maior volume de insatisfações críticas ({top_1_votos} votos de 1 estrela de um total de {total_1_estrela} no estado), "
+            "o que sugere que os serviços digitais atrelados a este órgão devem ser priorizados para revisões de usabilidade e processos."
+        )
 
-        with col_table_sat:
-            st.dataframe(
-                df_orgao[["siglaorgao", "Votos", "Nota_Media", "% Satisfeitos"]]
-                .rename(columns={
-                    "siglaorgao": "Órgão",
-                    "Nota_Media": "Nota Média",
-                }),
-                use_container_width=True,
-                hide_index=True,
-            )
     else:
-        st.info("Informação de órgão não disponível nos dados de votos.")
+        st.info("Informação de órgão ou avaliação não disponível nos dados.")

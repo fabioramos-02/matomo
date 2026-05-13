@@ -81,6 +81,8 @@ def identify_service_cards(df):
                     link = f"https://www.ms.gov.br/{categoria_raw}/{slug_raw}"
                     rows.append({
                         'URL_Original': url,
+                        'slug_servico': slug_raw,
+                        'slug_categoria': categoria_raw,
                         'Categoria': categoria_nome,
                         'Nome do Serviço': servico_nome,
                         'Visitas': row['Visitas'],
@@ -89,7 +91,7 @@ def identify_service_cards(df):
 
     service_df = pd.DataFrame(rows)
     if not service_df.empty:
-        service_df = service_df.groupby(['Categoria', 'Nome do Serviço', 'Link'], as_index=False).agg({'Visitas': 'sum', 'URL_Original': 'first'})
+        service_df = service_df.groupby(['slug_servico', 'slug_categoria', 'Categoria', 'Nome do Serviço', 'Link'], as_index=False).agg({'Visitas': 'sum', 'URL_Original': 'first'})
         service_df = service_df.sort_values(by='Visitas', ascending=False).reset_index(drop=True)
         
     print(f"🃏 identify_service_cards: {len(service_df)} cartas de serviço identificadas.")

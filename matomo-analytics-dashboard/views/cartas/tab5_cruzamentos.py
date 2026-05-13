@@ -26,6 +26,11 @@ def render_tab5_cruzamentos(
     """
     st.subheader("🔀 Cruzamentos Estratégicos")
 
+    st.markdown("""
+    Nesta aba, cruzamos os dados de **comportamento (acessos)** com os dados de **qualidade (erros)** e **satisfação (votos)**. 
+    O objetivo é identificar onde os problemas são mais graves por afetarem o maior número de cidadãos.
+    """)
+
     if df_inventory.empty and df_errors.empty:
         st.info("Dados insuficientes para cruzamentos.")
         return
@@ -33,11 +38,11 @@ def render_tab5_cruzamentos(
     # ------------------------------------------------------------------ #
     # Cruzamento 1: Erros vs. Volume Matomo                               #
     # ------------------------------------------------------------------ #
-    st.markdown("#### 📊 Cruzamento 1 — Erros por Serviço vs. Acessos no Portal")
+    st.markdown("#### 📊 Erros por Serviço vs. Acessos no Portal")
 
-    if not df_errors.empty and "titulo_servico" in df_errors.columns:
+    if not df_errors.empty and "slug_servico" in df_errors.columns:
         df_erros_svc = (
-            df_errors.groupby("titulo_servico")
+            df_errors.groupby(["slug_servico", "titulo_servico"])
             .agg(
                 Total_Erros=("iderroservico", "count"),
                 Pendentes=("atendido", lambda x: (~x.astype(bool)).sum()),
@@ -46,9 +51,11 @@ def render_tab5_cruzamentos(
             .rename(columns={"titulo_servico": "Serviço"})
         )
 
-        if df_matomo_pages is not None and not df_matomo_pages.empty and "Nome do Serviço" in df_matomo_pages.columns:
-            df_matomo_agg = df_matomo_pages.rename(columns={"Nome do Serviço": "Serviço", "Visitas": "Acessos_Matomo"})
-            df_cross1 = pd.merge(df_erros_svc, df_matomo_agg[["Serviço", "Acessos_Matomo"]], on="Serviço", how="outer")
+        if df_matomo_pages is not None and not df_matomo_pages.empty and "slug_servico" in df_matomo_pages.columns:
+            df_matomo_agg = df_matomo_pages[["slug_servico", "Visitas"]].rename(columns={"Visitas": "Acessos_Matomo"})
+            df_cross1 = pd.merge(df_erros_svc, df_matomo_agg, on="slug_servico", how="outer")
+            # Preenche o nome do serviço para itens que só existem no Matomo
+            df_cross1["Serviço"] = df_cross1["Serviço"].fillna(df_cross1["slug_servico"].str.replace("-", " ").str.title())
         else:
             # Usa volume simulado se Matomo não estiver disponível
             import random
@@ -81,13 +88,19 @@ def render_tab5_cruzamentos(
         )
         # Quadrante de atenção: alto acesso + muitos erros
         fig_bubble.add_annotation(
-            x=df_cross1["Acessos_Matomo"].max() * 0.75,
-            y=df_cross1["Total_Erros"].max() * 0.9,
+            x=df_cross1["Acessos_Matomo"].max() * 0.75 if not df_cross1.empty else 0,
+            y=df_cross1["Total_Erros"].max() * 0.9 if not df_cross1.empty else 0,
             text="⚠️ Atenção: muito acessado e com erros",
             showarrow=False,
             font=dict(color="#EF4444", size=12),
         )
         st.plotly_chart(fig_bubble, use_container_width=True)
+
+        st.info("""
+        **💡 Insight:** No gráfico acima, as bolas maiores e mais à direita são os seus maiores problemas. 
+        Elas representam serviços que muita gente tenta usar, mas que possuem muitos erros reportados. 
+        Corrigir estes itens deve ser a prioridade número 1.
+        """)
 
         if df_matomo_pages is None:
             st.caption("ℹ️ Acessos no Matomo são simulados — ative a fonte **Portal (Matomo)** para dados reais.")
@@ -99,11 +112,11 @@ def render_tab5_cruzamentos(
     # ------------------------------------------------------------------ #
     # Cruzamento 2: Satisfação vs. Volume de Acessos                      #
     # ------------------------------------------------------------------ #
-    st.markdown("#### 📊 Cruzamento 2 — Satisfação vs. Volume de Acessos")
+    st.markdown("#### 📊 Satisfação vs. Volume de Acessos")
 
-    if not df_votes.empty and "titulo_servico" in df_votes.columns:
+    if not df_votes.empty and "slug_servico" in df_votes.columns:
         df_sat_svc = (
-            df_votes.groupby("titulo_servico")
+            df_votes.groupby(["slug_servico", "titulo_servico"])
             .agg(
                 Nota_Media=("avaliacao_voto_servico", "mean"),
                 Total_Votos=("id_voto", "count"),
@@ -113,9 +126,9 @@ def render_tab5_cruzamentos(
         )
         df_sat_svc["Nota_Media"] = df_sat_svc["Nota_Media"].round(2)
 
-        if df_matomo_pages is not None and not df_matomo_pages.empty:
-            df_mat = df_matomo_pages.rename(columns={"Nome do Serviço": "Serviço", "Visitas": "Acessos_Matomo"})
-            df_cross2 = pd.merge(df_sat_svc, df_mat[["Serviço", "Acessos_Matomo"]], on="Serviço", how="left")
+        if df_matomo_pages is not None and not df_matomo_pages.empty and "slug_servico" in df_matomo_pages.columns:
+            df_mat = df_matomo_pages[["slug_servico", "Visitas"]].rename(columns={"Visitas": "Acessos_Matomo"})
+            df_cross2 = pd.merge(df_sat_svc, df_mat, on="slug_servico", how="left")
         else:
             import random
             random.seed(77)
@@ -161,6 +174,12 @@ def render_tab5_cruzamentos(
             yaxis=dict(range=[0.5, 5.5]),
         )
         st.plotly_chart(fig_scatter2, use_container_width=True)
+
+        st.warning("""
+        **💡 Insight:** Aqui vemos a percepção do cidadão. Se um serviço tem **muitos acessos** mas **baixa nota** (cor vermelha), 
+        isso indica que a jornada do usuário está sendo frustrante. Pode não ser um erro técnico, mas sim um processo 
+        difícil de entender ou burocrático.
+        """)
 
         # Tabela: serviços críticos (baixa satisfação + alto acesso)
         st.markdown("##### ⚠️ Serviços Críticos: Baixa Satisfação + Alto Volume")

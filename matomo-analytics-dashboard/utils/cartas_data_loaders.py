@@ -81,6 +81,8 @@ SELECT
     v.id                        AS id_voto,
     v.servicos_id               AS idservico,
     s.titulo                    AS titulo_servico,
+    s.slug                      AS slug_servico,
+    t_cat.slug                  AS slug_categoria,
     o.sigla                     AS siglaorgao,
     o.nome                      AS nome_orgao,
     v.created_at                AS data_voto,
@@ -90,6 +92,7 @@ FROM public.gerenciamento_votosservicos v
 INNER JOIN public.gerenciamento_servicos s ON s.id = v.servicos_id
 INNER JOIN public.gerenciamento_setor st ON st.id = s.setor_id
 INNER JOIN public.gerenciamento_orgaos o ON o.id = st.orgao_id
+LEFT JOIN public.gerenciamento_temas t_cat ON t_cat.id = s.tema_id
 ORDER BY v.created_at DESC;
 """
 

@@ -231,8 +231,25 @@ def process_ga_visit_time(data: list) -> pd.DataFrame:
     df = pd.DataFrame(data)
     df = df.rename(columns={"hour": "Hora", "activeUsers": "Visitas"})
     df["Visitas"] = pd.to_numeric(df["Visitas"], errors="coerce").fillna(0).astype(int)
-    df["Hora"] = df["Hora"].apply(lambda h: f"{int(h)}h")
-    return df[["Hora", "Visitas"]].sort_values("Hora").reset_index(drop=True)
+    
+    # Converte 'Hora' para numérico de forma segura (valores inválidos/not set viram NaN)
+    df["Hora_num"] = pd.to_numeric(df["Hora"], errors="coerce")
+    
+    # Descarta linhas onde 'Hora' não é numérico (como "(not set)")
+    df = df.dropna(subset=["Hora_num"])
+    
+    if df.empty:
+        return pd.DataFrame(columns=["Hora", "Visitas"])
+        
+    df["Hora_num"] = df["Hora_num"].astype(int)
+    
+    # Ordena numericamente para garantir a ordem cronológica correta na UI/Plotly (0h a 23h)
+    df = df.sort_values("Hora_num").reset_index(drop=True)
+    
+    # Formata como string "int + h" para manter consistência com o restante do código
+    df["Hora"] = df["Hora_num"].apply(lambda h: f"{h}h")
+    
+    return df[["Hora", "Visitas"]]
 
 
 def process_ga_overview(data: list) -> dict:

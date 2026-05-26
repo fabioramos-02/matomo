@@ -40,7 +40,11 @@ def render_ga_tab1_overview(overview: dict, df_platform, df_funnel):
                 df_ret, values="Usuários", names="Tipo", hole=0.5,
                 color_discrete_map={"Novos": "#00b4d8", "Recorrentes": "#0077b6"},
             )
-            fig.update_traces(textposition="inside", textinfo="percent+label")
+            fig.update_traces(
+                textposition="inside",
+                texttemplate="<b>%{label}<br>%{percent:.1%}</b>",
+                insidetextfont=dict(size=16)
+            )
             fig.update_layout(showlegend=False, margin=dict(t=20, b=20))
             st.plotly_chart(fig, width="stretch")
         else:
@@ -56,7 +60,11 @@ def render_ga_tab1_overview(overview: dict, df_platform, df_funnel):
                 df_plat_group, values="Usuários", names="Plataforma", hole=0.5,
                 color_discrete_sequence=px.colors.qualitative.Set2,
             )
-            fig_plat.update_traces(textposition="inside", textinfo="percent+label")
+            fig_plat.update_traces(
+                textposition="inside",
+                texttemplate="<b>%{label}<br>%{percent:.1%}</b>",
+                insidetextfont=dict(size=16)
+            )
             fig_plat.update_layout(showlegend=False, margin=dict(t=20, b=20))
             st.plotly_chart(fig_plat, width="stretch")
 

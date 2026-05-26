@@ -14,7 +14,12 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
             df_show.insert(0, '#', df_show.index + 1)
             fig = px.bar(df_pages.head(15), x='Visitas', y='URL', orientation='h',
                          color='Visitas', color_continuous_scale='Blues')
-            fig.update_layout(yaxis={'categoryorder': 'total ascending'})
+            fig.update_traces(texttemplate='%{x:,.0f}', textposition='outside')
+            fig.update_layout(
+                yaxis={'categoryorder': 'total ascending'},
+                separators=',.',
+                margin=dict(r=110)
+            )
             st.plotly_chart(fig, width="stretch")
             st.dataframe(df_show[['#', 'URL', 'Visitas']], hide_index=True, width="stretch")
         else:
@@ -35,7 +40,13 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
             st.subheader("Top Categorias de Serviço (Geral)")
             st.markdown("Clique em uma barra para filtrar os serviços ao lado:")
             fig_cat = px.bar(df_cat.head(10), x='Visitas', y='Categoria', orientation='h', color='Visitas', color_continuous_scale='Oranges')
-            fig_cat.update_layout(yaxis={'categoryorder':'total ascending'}, clickmode='event+select')
+            fig_cat.update_traces(texttemplate='%{x:,.0f}', textposition='outside')
+            fig_cat.update_layout(
+                yaxis={'categoryorder':'total ascending'},
+                clickmode='event+select',
+                separators=',.',
+                margin=dict(r=110)
+            )
             
             # Interactive Selection
             event = st.plotly_chart(fig_cat, width="stretch", on_select="rerun", selection_mode="points")
@@ -68,8 +79,47 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
             
         with col_serv:
             st.subheader(f"Top 10 Cartas ({categoria_selecionada})")
-            fig_serv = px.bar(df_filtered.head(10), x='Visitas', y='Nome do Serviço', orientation='h', color='Visitas', color_continuous_scale='Blues')
-            fig_serv.update_layout(yaxis={'categoryorder':'total ascending'})
+            
+            top_10 = df_filtered.head(10)
+            n_items = len(top_10)
+            
+            if n_items > 0:
+                labels = []
+                for i, v in enumerate(top_10['Visitas']):
+                    formatted = f"{v:,}".replace(",", ".")
+                    if i == 0:
+                        labels.append(f"<b>{formatted}</b>")  # Negrito destacado
+                    else:
+                        labels.append(formatted)
+                
+                textpositions = ['inside'] + ['outside'] * (n_items - 1)
+                textcolors = ['#FFFFFF'] + ['#E0E0E0'] * (n_items - 1)
+                textsizes = [13] + [11] * (n_items - 1)
+            else:
+                labels = []
+                textpositions = []
+                textcolors = []
+                textsizes = []
+                
+            fig_serv = px.bar(
+                top_10, 
+                x='Visitas', 
+                y='Nome do Serviço', 
+                orientation='h', 
+                color='Visitas', 
+                color_continuous_scale='Blues',
+                text=labels
+            )
+            fig_serv.update_traces(
+                texttemplate='%{text}',
+                textposition=textpositions,
+                textfont=dict(color=textcolors, size=textsizes),
+                insidetextanchor='end'
+            )
+            fig_serv.update_layout(
+                yaxis={'categoryorder':'total ascending'},
+                margin=dict(r=110)
+            )
             st.plotly_chart(fig_serv, width="stretch")
 
         st.subheader("Explorar Cartas (Links Diretos)")

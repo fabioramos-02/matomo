@@ -39,12 +39,46 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
         with col_cat:
             st.subheader("Top Categorias de Serviço (Geral)")
             st.markdown("Clique em uma barra para filtrar os serviços ao lado:")
-            fig_cat = px.bar(df_cat.head(10), x='Visitas', y='Categoria', orientation='h', color='Visitas', color_continuous_scale='Oranges')
-            fig_cat.update_traces(texttemplate='%{x:,.0f}', textposition='outside')
+            
+            top_cat = df_cat.head(10)
+            n_cats = len(top_cat)
+            
+            if n_cats > 0:
+                cat_labels = []
+                for i, v in enumerate(top_cat['Visitas']):
+                    formatted = f"{v:,}".replace(",", ".")
+                    if i == 0:
+                        cat_labels.append(f"<b>{formatted}</b>")  # Negrito destacado
+                    else:
+                        cat_labels.append(formatted)
+                
+                cat_textpositions = ['inside'] + ['outside'] * (n_cats - 1)
+                cat_textcolors = ['#FFFFFF'] + ['#E0E0E0'] * (n_cats - 1)
+                cat_textsizes = [13] + [11] * (n_cats - 1)
+            else:
+                cat_labels = []
+                cat_textpositions = []
+                cat_textcolors = []
+                cat_textsizes = []
+                
+            fig_cat = px.bar(
+                top_cat, 
+                x='Visitas', 
+                y='Categoria', 
+                orientation='h', 
+                color='Visitas', 
+                color_continuous_scale='Oranges',
+                text=cat_labels
+            )
+            fig_cat.update_traces(
+                texttemplate='%{text}',
+                textposition=cat_textpositions,
+                textfont=dict(color=cat_textcolors, size=cat_textsizes),
+                insidetextanchor='end'
+            )
             fig_cat.update_layout(
                 yaxis={'categoryorder':'total ascending'},
                 clickmode='event+select',
-                separators=',.',
                 margin=dict(r=110)
             )
             

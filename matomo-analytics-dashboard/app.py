@@ -78,6 +78,7 @@ from views.portal.tab1_perfil import render_tab1_perfil
 from views.portal.tab2_busca import render_tab2_busca
 from views.portal.tab3_servicos import render_tab3_servicos
 from views.portal.tab4_jornada import render_tab4_jornada
+from views.portal.tab5_usuarios import render_tab5_usuarios
 
 # Views MS Digital (GA4)
 from views.ms_digital.tab1_overview import render_ga_tab1_overview
@@ -270,20 +271,38 @@ if fonte == "Portal (Matomo)":
             df_services_trend = _load_trend_monthly_chunks(api, matomo_start, matomo_end, top5_matomo, selected_site_id)
         # > 730 dias: df_services_trend permanece vazio, exibe mensagem na view
 
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "1. Perfil do Cidadão",
-        "2. Intenção de Busca",
-        "3. Serviços Consumidos",
-        "4. Fluxo de Navegação",
-    ])
-    with tab1:
+    # Se for o Portal de Serviços (Site ID 298), adicionamos a aba de acessos identificados
+    show_tab5 = (selected_site_id == int(MATOMO_SITE_ID))
+    
+    if show_tab5:
+        tab_list = [
+            "1. Perfil do Cidadão",
+            "2. Intenção de Busca",
+            "3. Serviços Consumidos",
+            "4. Fluxo de Navegação",
+            "5. Acessos Identificados",
+        ]
+    else:
+        tab_list = [
+            "1. Perfil do Cidadão",
+            "2. Intenção de Busca",
+            "3. Serviços Consumidos",
+            "4. Fluxo de Navegação",
+        ]
+        
+    tabs = st.tabs(tab_list)
+    
+    with tabs[0]:
         render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geojson, visits_summary=visits_summary)
-    with tab2:
+    with tabs[1]:
         render_tab2_busca(df_search)
-    with tab3:
+    with tabs[2]:
         render_tab3_servicos(df_pages, df_services=df_svc_all, df_services_trend=df_services_trend, trend_granularity=trend_granularity or 'day')
-    with tab4:
+    with tabs[3]:
         render_tab4_jornada(df_pages, api, period, date, selected_site_id)
+    if show_tab5:
+        with tabs[4]:
+            render_tab5_usuarios(matomo_start, matomo_end)
 
 elif fonte == "Cartas de Serviço":
     from utils.pg_connector import is_db_available

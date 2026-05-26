@@ -20,7 +20,7 @@ import streamlit as st
 import random
 from datetime import date, timedelta
 
-from utils.pg_connector import run_query, is_db_available
+from utils.pg_connector import run_query, is_db_available, run_query_controlador, is_db_controlador_available
 
 
 # =========================================================================== #
@@ -210,3 +210,76 @@ def load_service_cards_info_reviews() -> pd.DataFrame:
         return pd.DataFrame()
     df = run_query(_sql)
     return df
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def load_portal_users_consolidated(start_date: str, end_date: str) -> pd.DataFrame:
+    """
+    Retorna o total de usuários únicos cadastrados e os usuários únicos que
+    acessaram no período dinâmico selecionado (app_id=36).
+    Usa o banco controlador_prd.
+    """
+    _sql = """
+    SELECT
+        total.app_id                                                        AS id_app,
+        total.Qtde_Total_Usuarios_Portal,
+        period.Qtde_Acessos_Periodo,
+        ROUND(
+            (period.Qtde_Acessos_Periodo::NUMERIC
+                / NULLIF(total.Qtde_Total_Usuarios_Portal, 0)) * 100,
+            2
+        )                                                                   AS Percentual_Acesso_Periodo
+    FROM
+        (
+            SELECT
+                ac.app_id,
+                COUNT(DISTINCT ac.user_id) AS Qtde_Total_Usuarios_Portal
+            FROM public.authentication_historicologin as ac
+            WHERE ac.app_id = 36
+            GROUP BY 1
+        ) AS total
+    LEFT JOIN
+        (
+            SELECT
+                ac.app_id,
+                COUNT(DISTINCT ac.user_id) AS Qtde_Acessos_Periodo
+            FROM public.authentication_historicologin as ac
+            WHERE
+                ac.app_id = 36
+                AND ac.created_at >= CAST(:start_date AS DATE)
+                AND ac.created_at < CAST(:end_date AS DATE) + INTERVAL '1 day'
+            GROUP BY 1
+        ) AS period
+    ON total.app_id = period.app_id;
+    """
+    if not is_db_controlador_available():
+        return pd.DataFrame()
+    return run_query_controlador(_sql, params={"start_date": start_date, "end_date": end_date})
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def load_portal_users_trend(start_date: str, end_date: str) -> pd.DataFrame:
+    """
+    Retorna a evolução temporal diária de acessos de usuários únicos
+    no período selecionado (app_id=36).
+    Usa o banco controlador_prd.
+    """
+    _sql = """
+    SELECT
+        created_at::date AS data_acesso,
+        COUNT(DISTINCT user_id) AS qtde_usuarios
+    FROM public.authentication_historicologin
+    WHERE
+        app_id = 36
+        AND created_at >= CAST(:start_date AS DATE)
+        AND created_at < CAST(:end_date AS DATE) + INTERVAL '1 day'
+    GROUP BY 1
+    ORDER BY 1;
+    """
+    if not is_db_controlador_available():
+        return pd.DataFrame()
+    df = run_query_controlador(_sql, params={"start_date": start_date, "end_date": end_date})
+    if not df.empty:
+        df['data_acesso'] = pd.to_datetime(df['data_acesso'])
+    return df
+

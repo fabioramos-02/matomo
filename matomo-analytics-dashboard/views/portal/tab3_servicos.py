@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.express as px
 from utils.data_processor import identify_service_cards
-from utils.charts_formatter import create_top_bar_chart
+from utils.charts_formatter import create_top_bar_chart, format_pie_chart
 
 def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df_services_trend=None, trend_granularity='day'):
     is_ga = fonte == "MS Digital (GA4)"
@@ -57,8 +57,7 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
                 st.subheader("Distribuição por Modalidade")
                 df_mod = df_services.groupby('Modalidade', as_index=False)['Visitas'].sum()
                 fig_mod = px.pie(df_mod, values='Visitas', names='Modalidade', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
-                fig_mod.update_traces(textposition='inside', textinfo='percent+label')
-                fig_mod.update_layout(margin=dict(t=20, b=20, l=20, r=20))
+                fig_mod = format_pie_chart(fig_mod)
                 st.plotly_chart(fig_mod, width='stretch')
                 
             with col_org:

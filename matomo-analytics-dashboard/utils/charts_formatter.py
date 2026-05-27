@@ -10,6 +10,13 @@ def create_top_bar_chart(df, x_col, y_col, color_scale, color_col=None, margin_r
     
     _color = color_col if color_col else x_col
     
+    # Heurística para a cor do texto da primeira barra
+    first_text_color = '#FFFFFF'
+    if color_col and n_items > 0:
+        val = df.iloc[0][color_col]
+        if isinstance(val, (int, float)) and val < 40:
+            first_text_color = '#111827' # Dark text for light bars
+
     if n_items > 0:
         for i, v in enumerate(df[x_col]):
             formatted = f"{v:,}".replace(",", ".")
@@ -18,7 +25,7 @@ def create_top_bar_chart(df, x_col, y_col, color_scale, color_col=None, margin_r
             else:
                 labels.append(formatted)
         textpositions = ['inside'] + ['outside'] * (n_items - 1)
-        textcolors = ['#FFFFFF'] + ['#E0E0E0'] * (n_items - 1)
+        textcolors = [first_text_color] + ['#E0E0E0'] * (n_items - 1)
         textsizes = [13] + [11] * (n_items - 1)
         
     fig = px.bar(df, x=x_col, y=y_col, orientation='h', color=_color, color_continuous_scale=color_scale, text=labels)

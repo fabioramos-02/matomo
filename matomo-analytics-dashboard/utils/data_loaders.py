@@ -80,10 +80,34 @@ def load_visits_summary_data(_api, p, d, sid):
 
 @st.cache_data(ttl=3600)
 def load_services_trend_daily(_api, start_date, end_date, sid, top_services):
-    """Tendência diária — funciona somente para ranges ≤60 dias."""
-    raw = _api.get_page_urls_trend(start_date, end_date, site_id=sid, granularity='day')
-    if not raw or not isinstance(raw, dict):
+    """Tendência diária — processa em blocos de 7 dias para evitar erro 500 da API do Matomo."""
+    from datetime import date as dt_date, timedelta
+    
+    start = dt_date.fromisoformat(start_date)
+    end = dt_date.fromisoformat(end_date)
+    
+    raw = {}
+    current = start
+    
+    while current <= end:
+        chunk_end = current + timedelta(days=6)
+        if chunk_end > end:
+            chunk_end = end
+            
+        chunk_raw = _api.get_page_urls_trend(
+            current.isoformat(), 
+            chunk_end.isoformat(), 
+            site_id=sid, 
+            granularity='day'
+        )
+        if chunk_raw and isinstance(chunk_raw, dict):
+            raw.update(chunk_raw)
+            
+        current = chunk_end + timedelta(days=1)
+
+    if not raw:
         return pd.DataFrame()
+        
     return process_services_trend(raw, list(top_services))
 
 

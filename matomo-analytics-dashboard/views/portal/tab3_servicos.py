@@ -58,14 +58,14 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
                 fig_mod = px.pie(df_mod, values='Visitas', names='Modalidade', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
                 fig_mod.update_traces(textposition='inside', textinfo='percent+label')
                 fig_mod.update_layout(margin=dict(t=20, b=20, l=20, r=20))
-                st.plotly_chart(fig_mod, use_container_width=True)
+                st.plotly_chart(fig_mod, width='stretch')
                 
             with col_org:
                 st.subheader("Top Órgãos Mais Demandados")
                 df_org = df_services.groupby('Órgão', as_index=False)['Visitas'].sum().sort_values(by='Visitas', ascending=False).head(10)
                 fig_org = px.bar(df_org, x='Visitas', y='Órgão', orientation='h', color='Visitas', color_continuous_scale='Teal')
                 fig_org.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20, b=20, l=20, r=20))
-                st.plotly_chart(fig_org, use_container_width=True)
+                st.plotly_chart(fig_org, width='stretch')
             
             st.markdown("---")
 

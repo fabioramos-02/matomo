@@ -62,31 +62,43 @@ CATEGORIAS_MAPEAMENTO = {
 def identify_service_cards(df):
     """
     Filtra o DataFrame do Matomo para encontrar 'Cartas de Serviço'.
-    Cruza com o inventário oficial (CSV) para garantir que os slugs e títulos estão corretos.
+    Cruza com o inventário oficial para garantir que os slugs, títulos, órgãos e modalidades estão corretos.
+    Retorna SOMENTE os serviços ATIVOS listados no inventário.
     """
-    if df.empty:
-        return df
+    if df is None or df.empty:
+        return pd.DataFrame()
 
-    # Tenta carregar o inventário oficial para limpeza
-    import os
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    inv_path = os.path.join(base_dir, "exports", "cartas_inventory.csv")
-    
-    inventory_map = {}
-    if os.path.exists(inv_path):
-        try:
-            df_inv = pd.read_csv(inv_path, sep=';', on_bad_lines='skip', encoding='utf-8-sig')
-            if not df_inv.empty:
-                # Cria um mapa {(cat_slug, svc_slug): (titulo, categoria_nome)}
-                for _, inv_row in df_inv.iterrows():
-                    key = (str(inv_row['slug_categoria']).lower(), str(inv_row['slug_servico']).lower())
-                    inventory_map[key] = {
-                        'titulo': inv_row['titulo_servico'],
-                        'categoria_nome': inv_row.get('nome_categoria', inv_row['slug_categoria'].replace('-', ' ').title())
-                    }
-            print(f"✅ Inventário carregado para cruzamento: {len(inventory_map)} itens.")
-        except Exception as e:
-            print(f"⚠️ Erro ao carregar inventário para limpeza: {e}")
+    from utils.cartas_data_loaders import load_service_cards_inventory
+
+    try:
+        # Carrega os dados mais recentes do banco ou CSV via loader
+        df_inv = load_service_cards_inventory()
+        # Filtra apenas serviços ativos
+        df_inv = df_inv[df_inv['servico_ativo'] == True]
+        
+        inventory_map = {}
+        if not df_inv.empty:
+            for _, inv_row in df_inv.iterrows():
+                key = (str(inv_row['slug_categoria']).lower(), str(inv_row['slug_servico']).lower())
+                
+                # Determinar Modalidade
+                modalidade = "Presencial"
+                if inv_row.get('digital') == True:
+                    modalidade = "Digital"
+                elif inv_row.get('online') == True:
+                    modalidade = "Híbrido"
+                    
+                inventory_map[key] = {
+                    'titulo': inv_row['titulo_servico'],
+                    'categoria_nome': inv_row.get('nome_categoria') if pd.notna(inv_row.get('nome_categoria')) else str(inv_row['slug_categoria']).replace('-', ' ').title(),
+                    'sigla_orgao': inv_row.get('siglaorgao', 'Não Identificado'),
+                    'nome_orgao': inv_row.get('nome_orgao', 'Não Identificado'),
+                    'modalidade': modalidade
+                }
+        print(f"✅ Inventário de serviços ATIVOS carregado para cruzamento: {len(inventory_map)} itens.")
+    except Exception as e:
+        print(f"⚠️ Erro ao carregar inventário para cruzamento: {e}")
+        inventory_map = {}
 
     rows = []
     for _, row in df.iterrows():
@@ -96,7 +108,7 @@ def identify_service_cards(df):
             categoria_raw = parts[0].lower()
             slug_raw = parts[1]
             
-            # 1. Tenta Match Exato com Inventário (Prioridade)
+            # Match Exato com Inventário (Apenas Ativos)
             key = (categoria_raw, slug_raw.lower())
             if key in inventory_map:
                 inv_data = inventory_map[key]
@@ -106,33 +118,21 @@ def identify_service_cards(df):
                     'slug_categoria': categoria_raw,
                     'Categoria': inv_data['categoria_nome'],
                     'Nome do Serviço': inv_data['titulo'],
+                    'Órgão': inv_data['sigla_orgao'],
+                    'Nome do Órgão': inv_data['nome_orgao'],
+                    'Modalidade': inv_data['modalidade'],
                     'Visitas': row['Visitas'],
                     'Link': f"https://www.ms.gov.br/{categoria_raw}/{slug_raw}"
                 })
-            # 2. Fallback para Regex (Se não houver inventário ou item novo)
-            elif categoria_raw in CATEGORIAS_MAPEAMENTO:
-                categoria_nome = CATEGORIAS_MAPEAMENTO[categoria_raw]
-                no_file_ext = not re.search(r'\.(jpg|png|pdf|css|js)$', slug_raw.lower())
-                # Filtro heurístico: slugs de serviço costumam ter hífens
-                if '-' in slug_raw and no_file_ext:
-                    servico_nome = re.sub(r'\d+$', '', slug_raw).replace('-', ' ').title()
-                    rows.append({
-                        'URL_Original': url,
-                        'slug_servico': slug_raw,
-                        'slug_categoria': categoria_raw,
-                        'Categoria': categoria_nome,
-                        'Nome do Serviço': servico_nome,
-                        'Visitas': row['Visitas'],
-                        'Link': f"https://www.ms.gov.br/{categoria_raw}/{slug_raw}"
-                    })
 
     service_df = pd.DataFrame(rows)
     if not service_df.empty:
         # Agrupa para somar visitas de URLs que podem ter variações de parâmetros mas mesmo slug
-        service_df = service_df.groupby(['slug_servico', 'slug_categoria', 'Categoria', 'Nome do Serviço', 'Link'], as_index=False).agg({'Visitas': 'sum', 'URL_Original': 'first'})
+        cols_groupby = ['slug_servico', 'slug_categoria', 'Categoria', 'Nome do Serviço', 'Órgão', 'Nome do Órgão', 'Modalidade', 'Link']
+        service_df = service_df.groupby(cols_groupby, as_index=False).agg({'Visitas': 'sum', 'URL_Original': 'first'})
         service_df = service_df.sort_values(by='Visitas', ascending=False).reset_index(drop=True)
         
-    print(f"🃏 identify_service_cards: {len(service_df)} cartas de serviço identificadas.")
+    print(f"🃏 identify_service_cards: {len(service_df)} cartas de serviço ATIVAS cruzadas.")
     return service_df
 
 def process_search_keywords(data):

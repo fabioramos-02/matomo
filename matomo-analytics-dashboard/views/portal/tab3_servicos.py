@@ -27,12 +27,48 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
         return
 
     st.header("Serviços Consumidos")
-    st.markdown("Identificadas pelo padrão de URL `/categoria/servico`.")
+    st.markdown("Identificados cruzando as URLs acessadas com o **Inventário Oficial de Cartas de Serviços (Apenas Serviços Ativos)**.")
 
     if df_services is None:
         df_services = identify_service_cards(df_pages)
     
     if not df_services.empty:
+        total_visitas = df_services['Visitas'].sum()
+        total_servicos = df_services['Nome do Serviço'].nunique()
+        
+        orgao_top = "N/A"
+        perc_digital = 0.0
+        
+        if 'Órgão' in df_services.columns:
+            orgao_top = df_services.groupby('Órgão')['Visitas'].sum().idxmax()
+            
+        if 'Modalidade' in df_services.columns:
+            visitas_digitais = df_services[df_services['Modalidade'] == 'Digital']['Visitas'].sum()
+            if total_visitas > 0:
+                perc_digital = (visitas_digitais / total_visitas) * 100
+                
+        st.info(f"💡 **Perfil de Consumo:** Neste período, os cidadãos acessaram **{total_servicos}** serviços ativos, somando **{total_visitas:,.0f}** visualizações. O órgão com maior volume de acessos foi **{orgao_top}**. Além disso, **{perc_digital:.1f}%** das visualizações foram direcionadas a serviços puramente **Digitais**.")
+        st.markdown("---")
+        
+        if 'Modalidade' in df_services.columns and 'Órgão' in df_services.columns:
+            col_mod, col_org = st.columns(2)
+            with col_mod:
+                st.subheader("Distribuição por Modalidade")
+                df_mod = df_services.groupby('Modalidade', as_index=False)['Visitas'].sum()
+                fig_mod = px.pie(df_mod, values='Visitas', names='Modalidade', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+                fig_mod.update_traces(textposition='inside', textinfo='percent+label')
+                fig_mod.update_layout(margin=dict(t=20, b=20, l=20, r=20))
+                st.plotly_chart(fig_mod, use_container_width=True)
+                
+            with col_org:
+                st.subheader("Top Órgãos Mais Demandados")
+                df_org = df_services.groupby('Órgão', as_index=False)['Visitas'].sum().sort_values(by='Visitas', ascending=False).head(10)
+                fig_org = px.bar(df_org, x='Visitas', y='Órgão', orientation='h', color='Visitas', color_continuous_scale='Teal')
+                fig_org.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20, b=20, l=20, r=20))
+                st.plotly_chart(fig_org, use_container_width=True)
+            
+            st.markdown("---")
+
         df_cat = df_services.groupby('Categoria', as_index=False)['Visitas'].sum().sort_values(by='Visitas', ascending=False)
         
         col_cat, col_serv = st.columns(2)
@@ -159,7 +195,10 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
         st.subheader("Explorar Cartas (Links Diretos)")
         
         # Adiciona a coluna de ranking/classificação (#)
-        df_table = df_filtered[['Nome do Serviço', 'Categoria', 'Visitas', 'Link']].copy()
+        cols_to_show = ['Nome do Serviço', 'Órgão', 'Categoria', 'Modalidade', 'Visitas', 'Link']
+        cols_to_show = [c for c in cols_to_show if c in df_filtered.columns]
+        
+        df_table = df_filtered[cols_to_show].copy()
         df_table.reset_index(drop=True, inplace=True)
         df_table.insert(0, '#', df_table.index + 1)
         

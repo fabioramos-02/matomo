@@ -6,6 +6,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from utils.charts_formatter import format_pie_chart
 
 
 def render_tab1_visao_geral(df: pd.DataFrame):
@@ -79,13 +80,9 @@ def render_tab1_visao_geral(df: pd.DataFrame):
             color_discrete_sequence=["#2563EB", "#64748B", "#F59E0B"],
             hole=0.4,
         )
-        fig_pizza.update_traces(textposition="outside", textinfo="percent+label")
-        fig_pizza.update_layout(
-            showlegend=True,
-            height=340,
-            margin=dict(t=20, b=20, l=10, r=10),
-        )
-        st.plotly_chart(fig_pizza, use_container_width=True)
+        fig_pizza = format_pie_chart(fig_pizza)
+        fig_pizza.update_layout(height=340)
+        st.plotly_chart(fig_pizza, width="stretch")
 
     # ------------------------------------------------------------------ #
     # Gráfico de Barras: Criação de Serviços por Ano                      #

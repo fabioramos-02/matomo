@@ -5,6 +5,7 @@ Ranking de órgãos, serviços por tipo, % do total, maturidade digital.
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from utils.charts_formatter import create_top_bar_chart
 
 
 def render_tab2_por_orgao(df: pd.DataFrame):
@@ -73,30 +74,10 @@ def render_tab2_por_orgao(df: pd.DataFrame):
 
         with col_bar:
             df_top10 = df_rank.head(10).copy()
-            # Inverte para o Plotly h-bar mostrar o 1º no topo
-            df_top10 = df_top10.sort_values("Total", ascending=True)
 
-            fig = px.bar(
-                df_top10,
-                x="Total",
-                y="siglaorgao",
-                orientation="h",
-                color="% Digital",
-                color_continuous_scale="Blues",
-                text="Total",
-                labels={"siglaorgao": "Órgão", "Total": "Qtd Serviços", "% Digital": "% Digital"},
-                template="plotly_white"
-            )
-            
-            fig.update_traces(
-                textposition="inside",
-                marker_line_width=0,
-                marker_line_color='white'
-            )
-            
+            fig = create_top_bar_chart(df_top10, "Total", "siglaorgao", "Blues", color_col="% Digital")
             fig.update_layout(
                 height=500, # Aumentado para dar "volume" às barras
-                margin=dict(t=30, b=30, l=10, r=20),
                 coloraxis_colorbar=dict(
                     title="% Digital",
                     thickness=15,
@@ -108,7 +89,6 @@ def render_tab2_por_orgao(df: pd.DataFrame):
                 yaxis=dict(
                     title="",
                     tickfont=dict(size=12, color="#4B5563"),
-                    autorange="reversed"
                 ),
                 xaxis=dict(
                     title="Volume Total de Serviços (Ativos)",
@@ -117,7 +97,7 @@ def render_tab2_por_orgao(df: pd.DataFrame):
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
             st.caption("Exibindo os 10 órgãos com maior portfólio de serviços.")
 
         with col_table:

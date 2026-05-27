@@ -1,6 +1,8 @@
 import pandas as pd
 import streamlit as st
+import streamlit as st
 import plotly.express as px
+from utils.charts_formatter import create_top_bar_chart
 
 _EVENTOS_SISTEMA = {
     "first_open":      ("Novos Usuários",      "Abriram o app pela 1ª vez no período"),
@@ -170,15 +172,8 @@ def render_ga_tab4_jornada(df_funnel):
         col_chart, col_table = st.columns([1.3, 1])
 
         with col_chart:
-            fig_ev = px.bar(
-                df_custom.head(10),
-                x="Ocorrências", y="Evento", orientation="h",
-                color="Ocorrências", color_continuous_scale="Purples",
-            )
-            fig_ev.update_layout(
-                yaxis={"categoryorder": "total ascending"},
-                coloraxis_showscale=False,
-            )
+            fig_ev = create_top_bar_chart(df_custom.head(10), "Ocorrências", "Evento", "Purples")
+            fig_ev.update_layout(coloraxis_showscale=False)
             st.plotly_chart(fig_ev, width="stretch")
 
         with col_table:

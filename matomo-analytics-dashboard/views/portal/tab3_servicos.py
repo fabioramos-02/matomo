@@ -1,30 +1,7 @@
 import streamlit as st
 import plotly.express as px
 from utils.data_processor import identify_service_cards
-
-def _create_top_bar_chart(df, x_col, y_col, color_scale, margin_r=110):
-    n_items = len(df)
-    labels, textpositions, textcolors, textsizes = [], [], [], []
-    if n_items > 0:
-        for i, v in enumerate(df[x_col]):
-            formatted = f"{v:,}".replace(",", ".")
-            if i == 0:
-                labels.append(f"<b>{formatted}</b>")
-            else:
-                labels.append(formatted)
-        textpositions = ['inside'] + ['outside'] * (n_items - 1)
-        textcolors = ['#FFFFFF'] + ['#E0E0E0'] * (n_items - 1)
-        textsizes = [13] + [11] * (n_items - 1)
-        
-    fig = px.bar(df, x=x_col, y=y_col, orientation='h', color=x_col, color_continuous_scale=color_scale, text=labels)
-    fig.update_traces(
-        texttemplate='%{text}',
-        textposition=textpositions,
-        textfont=dict(color=textcolors, size=textsizes),
-        insidetextanchor='end'
-    )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(r=margin_r, t=20, b=20, l=20))
-    return fig
+from utils.charts_formatter import create_top_bar_chart
 
 def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df_services_trend=None, trend_granularity='day'):
     is_ga = fonte == "MS Digital (GA4)"
@@ -87,7 +64,7 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
             with col_org:
                 st.subheader("Top Órgãos Mais Demandados")
                 df_org = df_services.groupby('Órgão', as_index=False)['Visitas'].sum().sort_values(by='Visitas', ascending=False).head(10)
-                fig_org = _create_top_bar_chart(df_org, 'Visitas', 'Órgão', 'Teal')
+                fig_org = create_top_bar_chart(df_org, 'Visitas', 'Órgão', 'Teal')
                 st.plotly_chart(fig_org, width='stretch')
             
             st.markdown("---")
@@ -100,7 +77,7 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
             st.markdown("Clique em uma barra para filtrar os serviços ao lado:")
             
             top_cat = df_cat.head(10)
-            fig_cat = _create_top_bar_chart(top_cat, 'Visitas', 'Categoria', 'Oranges')
+            fig_cat = create_top_bar_chart(top_cat, 'Visitas', 'Categoria', 'Oranges')
             fig_cat.update_layout(clickmode='event+select')
             
             # Interactive Selection
@@ -158,7 +135,7 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
             st.subheader(f"Top 10 Cartas ({categoria_selecionada})")
             
             top_10 = df_filtered.head(10)
-            fig_serv = _create_top_bar_chart(top_10, 'Visitas', 'Nome do Serviço', 'Blues')
+            fig_serv = create_top_bar_chart(top_10, 'Visitas', 'Nome do Serviço', 'Blues')
             st.plotly_chart(fig_serv, width="stretch")
 
         st.subheader("Explorar Cartas (Links Diretos)")

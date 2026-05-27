@@ -4,6 +4,7 @@ import plotly.express as px
 from datetime import datetime, date as dt_date
 from collections import defaultdict
 from utils.data_loaders import load_transitions_data, load_outlinks_data, load_entry_pages_data
+from utils.charts_formatter import create_top_bar_chart
 
 def _range_is_long(date_str, threshold_days=60):
     try:
@@ -97,8 +98,7 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Po
                     df_entry = df_entry[['label', 'nb_visits']].rename(columns={'label': 'Página Inicial', 'nb_visits': 'Entradas'})
                     df_entry['Página Inicial'] = df_entry['Página Inicial'].apply(lambda x: "Home (Index)" if x == "/" else x)
                     
-                    fig_entry = px.bar(df_entry.head(10), x='Entradas', y='Página Inicial', orientation='h', color='Entradas', color_continuous_scale='Greens')
-                    fig_entry.update_layout(yaxis={'categoryorder':'total ascending'})
+                    fig_entry = create_top_bar_chart(df_entry.head(10), 'Entradas', 'Página Inicial', 'Greens')
                     st.plotly_chart(fig_entry, width="stretch")
             else:
                 st.info("Sem dados de entrada no período.")
@@ -115,8 +115,7 @@ def render_tab4_jornada(df_pages, api, period, date, selected_site_id, fonte="Po
                     df_out = df_out[['label', 'nb_visits']].rename(columns={'label': 'Domínio de Destino', 'nb_visits': 'Saídas'})
                     df_out = df_out[~df_out['Domínio de Destino'].str.contains('ms.gov.br/login')]
                     
-                    fig_out = px.bar(df_out.head(10), x='Saídas', y='Domínio de Destino', orientation='h', color='Saídas', color_continuous_scale='Reds')
-                    fig_out.update_layout(yaxis={'categoryorder':'total ascending'})
+                    fig_out = create_top_bar_chart(df_out.head(10), 'Saídas', 'Domínio de Destino', 'Reds')
                     st.plotly_chart(fig_out, width="stretch")
             else:
                 st.info("Sem dados de saída no período.")

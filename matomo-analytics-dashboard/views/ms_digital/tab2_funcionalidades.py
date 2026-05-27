@@ -1,5 +1,6 @@
 import streamlit as st
 import plotly.express as px
+from utils.charts_formatter import create_top_bar_chart
 
 def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_links=None):
     st.header("Serviços Mais Acessados — MS Digital App")
@@ -27,21 +28,8 @@ def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_l
 
         with col_chart:
             df_top = df_services.head(15).copy()
-            fig = px.bar(
-                df_top,
-                x="Acessos",
-                y="Serviço",
-                orientation="h",
-                color="Acessos",
-                color_continuous_scale="Blues",
-                text=df_top["%"].apply(lambda v: f"{v}%"),
-            )
-            fig.update_traces(textposition="outside")
-            fig.update_layout(
-                yaxis={"categoryorder": "total ascending"},
-                coloraxis_showscale=False,
-                margin=dict(t=10, b=10, r=80),
-            )
+            fig = create_top_bar_chart(df_top, "Acessos", "Serviço", "Blues")
+            fig.update_layout(coloraxis_showscale=False, margin=dict(t=10, b=10, r=80))
             fig.update_yaxes(tickfont=dict(size=11))
             st.plotly_chart(fig, width="stretch")
 
@@ -92,15 +80,8 @@ def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_l
         col_ext_chart, col_ext_table = st.columns([1.3, 1])
 
         with col_ext_chart:
-            fig_ext = px.bar(
-                df_external_links.head(15),
-                x="Cliques",
-                y="Destino",
-                orientation="h",
-                color="Cliques",
-                color_continuous_scale="Greens",
-            )
-            fig_ext.update_layout(yaxis={"categoryorder": "total ascending"}, coloraxis_showscale=False)
+            fig_ext = create_top_bar_chart(df_external_links.head(15), "Cliques", "Destino", "Greens")
+            fig_ext.update_layout(coloraxis_showscale=False)
             fig_ext.update_yaxes(tickfont=dict(size=11))
             st.plotly_chart(fig_ext, width="stretch")
 

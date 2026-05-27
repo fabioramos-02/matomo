@@ -140,12 +140,34 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
         if selected_category in lista_categorias:
             idx = lista_categorias.index(selected_category)
             
-        categoria_selecionada = st.selectbox("🎯 Ou filtre Cartas por Categoria manualmente:", lista_categorias, index=idx)
+        col_filtros1, col_filtros2 = st.columns(2)
+        with col_filtros1:
+            categoria_selecionada = st.selectbox("🎯 Filtre Cartas por Categoria:", lista_categorias, index=idx)
+            
+        with col_filtros2:
+            orgaos_selecionados = []
+            if 'Órgão' in df_services.columns and 'Nome do Órgão' in df_services.columns:
+                orgao_map = df_services.drop_duplicates('Órgão').set_index('Órgão')['Nome do Órgão'].to_dict()
+                lista_orgaos = sorted(df_services['Órgão'].dropna().unique().tolist())
+                
+                def formata_orgao(sigla):
+                    nome = orgao_map.get(sigla, "")
+                    if sigla == "Não Identificado" or not nome or nome == "Não Identificado":
+                        return sigla
+                    return f"{nome} - {sigla}"
+
+                orgaos_selecionados = st.multiselect(
+                    "🏢 Filtre Cartas por Órgão:", 
+                    options=lista_orgaos, 
+                    default=[],
+                    format_func=formata_orgao
+                )
         
+        df_filtered = df_services
         if categoria_selecionada != "Todas as Categorias":
-            df_filtered = df_services[df_services['Categoria'] == categoria_selecionada]
-        else:
-            df_filtered = df_services
+            df_filtered = df_filtered[df_filtered['Categoria'] == categoria_selecionada]
+        if orgaos_selecionados:
+            df_filtered = df_filtered[df_filtered['Órgão'].isin(orgaos_selecionados)]
             
         with col_serv:
             st.subheader(f"Top 10 Cartas ({categoria_selecionada})")

@@ -278,11 +278,24 @@ def process_services_trend(daily_data, top_services):
     daily_data: dict {date_str: list_of_url_nodes} — resposta de get_page_urls_trend
     top_services: lista de nomes de serviços (str) para filtrar
     Retorna DataFrame com colunas: Data, Serviço, Visitas
-
-    Otimizado: loop direto nos nós brutos sem reconstruir DataFrame por dia.
     """
     if not daily_data or not isinstance(daily_data, dict) or not top_services:
         return pd.DataFrame()
+
+    from utils.cartas_data_loaders import load_service_cards_inventory
+
+    try:
+        df_inv = load_service_cards_inventory()
+        df_inv = df_inv[df_inv['servico_ativo'] == True]
+        
+        inventory_map = {}
+        if not df_inv.empty:
+            for _, inv_row in df_inv.iterrows():
+                key = (str(inv_row['slug_categoria']).lower(), str(inv_row['slug_servico']).lower())
+                inventory_map[key] = inv_row['titulo_servico']
+    except Exception as e:
+        print(f"⚠️ Erro ao carregar inventário para tendência: {e}")
+        inventory_map = {}
 
     top_set = set(top_services)
     rows = []
@@ -303,13 +316,14 @@ def process_services_trend(daily_data, top_services):
             if len(parts) < 2:
                 continue
             cat_raw = parts[0].lower()
-            if cat_raw not in _VALID_CATS:
-                continue
-            slug = parts[1]
-            if '-' not in slug or _EXT_RE.search(slug):
-                continue
-            svc_name = _DIGIT_TRAIL_RE.sub('', slug).replace('-', ' ').title()
-            if svc_name not in top_set:
+            import re
+            slug_raw = parts[1].lower()
+            slug_clean = re.sub(r'\d+$', '', slug_raw)
+            
+            key = (cat_raw, slug_clean)
+            svc_name = inventory_map.get(key)
+            
+            if not svc_name or svc_name not in top_set:
                 continue
             daily_visits[svc_name] = daily_visits.get(svc_name, 0) + visits
 

@@ -21,10 +21,8 @@ def render_tab5_usuarios(start_date: str, end_date: str):
         st.warning(
             "⚠️ **Conexão com o Banco de Dados Indisponível**\n\n"
             "O banco de dados PostgreSQL `controlador_prd` está offline ou as credenciais de acesso não "
-            "estão configuradas no arquivo `secrets.toml`. Esta aba necessita de uma conexão ativa "
-            "para realizar as consultas dinâmicas de login."
+            "estão configuradas no arquivo `secrets.toml`. Exibindo dados estáticos de fallback (arquivos CSV)."
         )
-        return
 
     # 1. Carregar Dados Consolidados
     with st.spinner("Consultando dados de acessos consolidados..."):

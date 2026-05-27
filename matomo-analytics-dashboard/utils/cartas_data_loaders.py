@@ -253,8 +253,9 @@ def load_portal_users_consolidated(start_date: str, end_date: str) -> pd.DataFra
     ON total.app_id = period.app_id;
     """
     if not is_db_controlador_available():
-        return pd.DataFrame()
-    return run_query_controlador(_sql, params={"start_date": start_date, "end_date": end_date})
+        return _load_from_csv("portal_users_consolidated.csv")
+    df = run_query_controlador(_sql, params={"start_date": start_date, "end_date": end_date})
+    return df if not df.empty else _load_from_csv("portal_users_consolidated.csv")
 
 
 @st.cache_data(ttl=600, show_spinner=False)
@@ -277,9 +278,16 @@ def load_portal_users_trend(start_date: str, end_date: str) -> pd.DataFrame:
     ORDER BY 1;
     """
     if not is_db_controlador_available():
-        return pd.DataFrame()
-    df = run_query_controlador(_sql, params={"start_date": start_date, "end_date": end_date})
+        df = _load_from_csv("portal_users_trend.csv")
+    else:
+        df = run_query_controlador(_sql, params={"start_date": start_date, "end_date": end_date})
+        if df.empty:
+            df = _load_from_csv("portal_users_trend.csv")
+            
     if not df.empty:
-        df['data_acesso'] = pd.to_datetime(df['data_acesso'])
+        # Garante colunas em minúsculas
+        df.columns = [c.lower() for c in df.columns]
+        if 'data_acesso' in df.columns:
+            df['data_acesso'] = pd.to_datetime(df['data_acesso'])
     return df
 

@@ -125,8 +125,8 @@ def render_tab3_qualidade(df_errors: pd.DataFrame):
                 title="",
                 tickfont=dict(
                     size=13,
-                    color="white",   # branco
-                    family="Arial Black"  # simula bold
+                    color="#1F2937",
+                    family="Arial Black"
                 ),
             ),
             xaxis=dict(
@@ -146,9 +146,10 @@ def render_tab3_qualidade(df_errors: pd.DataFrame):
             texttemplate='%{value}',
             textposition='inside',
             insidetextanchor='middle',
+            textangle=90,
             textfont=dict(
                 size=14,
-                color="white"  # melhora leitura nas barras
+                color="white"
             ),
             marker_line_width=0
         )

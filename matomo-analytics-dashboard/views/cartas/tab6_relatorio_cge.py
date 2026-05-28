@@ -81,6 +81,20 @@ def _build_df_sat_por_servico(df_votes: pd.DataFrame) -> pd.DataFrame:
     )
     grp["csat_pct"] = (grp["soma_notas"] / (grp["total_votos"] * 5) * 100).round(1)
     grp["nota_media"] = grp["nota_media"].round(2)
+
+    # Contagem por nota (1-5) para cada serviço
+    pivot = (
+        df_votes.groupby(["titulo_servico", "avaliacao_voto_servico"])
+        .size()
+        .unstack(fill_value=0)
+        .reindex(columns=[1, 2, 3, 4, 5], fill_value=0)
+        .reset_index()
+    )
+    pivot.columns = ["titulo_servico", "n1", "n2", "n3", "n4", "n5"]
+    grp = grp.merge(pivot, on="titulo_servico", how="left")
+    for c in ["n1", "n2", "n3", "n4", "n5"]:
+        grp[c] = grp[c].fillna(0).astype(int)
+
     return grp.sort_values("csat_pct", ascending=False).reset_index(drop=True)
 
 
@@ -222,6 +236,28 @@ def _export_pdf(
                 pdf.cell(w, 6, _p(v), border=1)
             pdf.ln()
 
+    # Evolucao mensal de erros
+    if "data_criacao_erro" in df_errors.columns and not df_errors.empty:
+        df_ev = df_errors.copy()
+        df_ev["data_criacao_erro"] = pd.to_datetime(df_ev["data_criacao_erro"], errors="coerce", utc=True)
+        df_ev["Mes"] = df_ev["data_criacao_erro"].dt.to_period("M").astype(str)
+        df_ev_group = df_ev.groupby("Mes").size().reset_index(name="Erros")
+        if not df_ev_group.empty:
+            pdf.ln(4)
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.cell(0, 7, _p("Evolucao Mensal de Erros"), ln=True)
+            pdf.set_font("Helvetica", "B", 10)
+            col_wev = [80, 40]
+            pdf.set_fill_color(220, 230, 241)
+            for h, w in zip(["Mes", "Erros"], col_wev):
+                pdf.cell(w, 7, _p(h), border=1, fill=True)
+            pdf.ln()
+            pdf.set_font("Helvetica", "", 9)
+            for _, row in df_ev_group.iterrows():
+                for v, w in zip([str(row["Mes"]), str(int(row["Erros"]))], col_wev):
+                    pdf.cell(w, 6, _p(v), border=1)
+                pdf.ln()
+
     pdf.ln(6)
 
     # Secao 3 — Satisfacao
@@ -239,27 +275,55 @@ def _export_pdf(
     pdf.cell(65, 7, _p(f"Nota Media: {nm_str}"), border=1)
     pdf.ln(10)
 
-    # Tabela satisfacao por servico
+    # Tabela breakdown 5 categorias
+    _rating_labels_pdf = {
+        1: "Muito Insatisfeito",
+        2: "Insatisfeito",
+        3: "Regular",
+        4: "Satisfeito",
+        5: "Muito Satisfeito",
+    }
+    counts_v = df_votes["avaliacao_voto_servico"].value_counts() if not df_votes.empty else pd.Series(dtype=int)
+    pdf.set_font("Helvetica", "B", 10)
+    col_w3 = [80, 40, 40]
+    pdf.set_fill_color(220, 230, 241)
+    for h, w in zip(["Categoria", "Votos", "%"], col_w3):
+        pdf.cell(w, 7, _p(h), border=1, fill=True)
+    pdf.ln()
+    pdf.set_font("Helvetica", "", 9)
+    for nota, label in _rating_labels_pdf.items():
+        n = int(counts_v.get(nota, 0))
+        pct = (n / total_votos * 100) if total_votos else 0
+        for v, w in zip([label, str(n), f"{pct:.1f}%"], col_w3):
+            pdf.cell(w, 6, _p(v), border=1)
+        pdf.ln()
+    pdf.ln(6)
+
+    # Tabela satisfacao por servico (com contagem por nota)
     df_sat = _build_df_sat_por_servico(df_votes)
     if not df_sat.empty:
-        pdf.set_font("Helvetica", "B", 10)
-        col_w2 = [90, 30, 30, 30]
-        headers2 = ["Servico", "Votos", "Nota Media", "CSAT (%)"]
+        pdf.set_font("Helvetica", "B", 8)
+        col_w2 = [55, 16, 16, 16, 16, 16, 16, 22]
+        headers2 = ["Servico", "Votos", "N1", "N2", "N3", "N4", "N5", "CSAT%"]
         pdf.set_fill_color(220, 230, 241)
         for h, w in zip(headers2, col_w2):
             pdf.cell(w, 7, _p(h), border=1, fill=True)
         pdf.ln()
-        pdf.set_font("Helvetica", "", 8)
+        pdf.set_font("Helvetica", "", 7)
         for _, row in df_sat.head(30).iterrows():
-            titulo = str(row.get("titulo_servico", ""))[:55]
+            titulo = str(row.get("titulo_servico", ""))[:38]
             vals2 = [
                 titulo,
                 str(int(row.get("total_votos", 0))),
-                str(row.get("nota_media", "")),
+                str(int(row.get("n1", 0))),
+                str(int(row.get("n2", 0))),
+                str(int(row.get("n3", 0))),
+                str(int(row.get("n4", 0))),
+                str(int(row.get("n5", 0))),
                 str(row.get("csat_pct", "")),
             ]
             for v, w in zip(vals2, col_w2):
-                pdf.cell(w, 6, v, border=1)
+                pdf.cell(w, 6, _p(v), border=1)
             pdf.ln()
 
     return pdf.output()
@@ -389,6 +453,11 @@ def render_tab6_relatorio_cge(
                 "nota_media": "Nota Média",
                 "soma_notas": "Soma Notas",
                 "csat_pct": "CSAT (%)",
+                "n1": "😡 M.Insatisfeito",
+                "n2": "😟 Insatisfeito",
+                "n3": "😐 Regular",
+                "n4": "🙂 Satisfeito",
+                "n5": "😄 M.Satisfeito",
             }).drop(columns=["Soma Notas"], errors="ignore"),
             use_container_width=True,
             hide_index=True,

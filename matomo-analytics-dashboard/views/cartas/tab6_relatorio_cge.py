@@ -109,6 +109,11 @@ def _build_df_erros_por_orgao(df_errors: pd.DataFrame) -> pd.DataFrame:
 
 def _export_xlsx(df_errors: pd.DataFrame, df_votes: pd.DataFrame) -> bytes:
     buf = io.BytesIO()
+    # openpyxl não suporta datetime com timezone — remover tz antes de escrever
+    df_errors = df_errors.copy()
+    for col in df_errors.select_dtypes(include=["datetimetz"]).columns:
+        df_errors[col] = df_errors[col].dt.tz_localize(None)
+
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
         # Aba Erros
         if not df_errors.empty:
@@ -149,6 +154,14 @@ def _export_xlsx(df_errors: pd.DataFrame, df_votes: pd.DataFrame) -> bytes:
 # Export PDF                                                           #
 # ------------------------------------------------------------------ #
 
+def _p(text: str) -> str:
+    """Converte string para Latin-1 seguro (fontes built-in do fpdf2 são Latin-1)."""
+    import unicodedata
+    # normaliza combinados (é → e + combining) depois codifica/decodifica com replace
+    nfkd = unicodedata.normalize("NFKD", str(text))
+    return nfkd.encode("latin-1", errors="replace").decode("latin-1")
+
+
 def _export_pdf(
     df_errors: pd.DataFrame,
     df_votes: pd.DataFrame,
@@ -167,34 +180,34 @@ def _export_pdf(
 
     # Cabeçalho
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "Relatório CGE — Cartas de Serviço", ln=True, align="C")
+    pdf.cell(0, 10, _p("Relatorio CGE - Cartas de Servico"), ln=True, align="C")
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 6, f"Gerado em: {date.today().strftime('%d/%m/%Y')}", ln=True, align="C")
+    pdf.cell(0, 6, _p(f"Gerado em: {date.today().strftime('%d/%m/%Y')}"), ln=True, align="C")
     pdf.ln(6)
 
-    # Seção 2 — Erros
+    # Secao 2 — Erros
     pdf.set_font("Helvetica", "B", 13)
     pdf.set_fill_color(36, 64, 97)
     pdf.set_text_color(255, 255, 255)
-    pdf.cell(0, 8, "Seção 2 — Atualização das Cartas de Serviços", ln=True, fill=True)
+    pdf.cell(0, 8, _p("Secao 2 - Atualizacao das Cartas de Servicos"), ln=True, fill=True)
     pdf.set_text_color(0, 0, 0)
     pdf.ln(2)
 
     pdf.set_font("Helvetica", "", 11)
-    pdf.cell(60, 7, f"Total de Erros: {total_erros}", border=1)
-    pdf.cell(65, 7, f"Atendidos: {atendidos} ({atendidos/total_erros*100:.0f}%)" if total_erros else "Atendidos: 0", border=1)
-    pdf.cell(65, 7, f"Pendentes: {pendentes} ({pendentes/total_erros*100:.0f}%)" if total_erros else "Pendentes: 0", border=1)
+    pdf.cell(60, 7, _p(f"Total de Erros: {total_erros}"), border=1)
+    pdf.cell(65, 7, _p(f"Atendidos: {atendidos} ({atendidos/total_erros*100:.0f}%)" if total_erros else "Atendidos: 0"), border=1)
+    pdf.cell(65, 7, _p(f"Pendentes: {pendentes} ({pendentes/total_erros*100:.0f}%)" if total_erros else "Pendentes: 0"), border=1)
     pdf.ln(10)
 
-    # Tabela de erros por órgão
+    # Tabela de erros por orgao
     df_org = _build_df_erros_por_orgao(df_errors)
     if not df_org.empty:
         pdf.set_font("Helvetica", "B", 10)
         col_w = [40, 30, 30, 30, 30]
-        headers = ["Órgão", "Total", "Atendidos", "Corrigidos", "Pendentes"]
+        headers = ["Orgao", "Total", "Atendidos", "Corrigidos", "Pendentes"]
         pdf.set_fill_color(220, 230, 241)
         for h, w in zip(headers, col_w):
-            pdf.cell(w, 7, h, border=1, fill=True)
+            pdf.cell(w, 7, _p(h), border=1, fill=True)
         pdf.ln()
         pdf.set_font("Helvetica", "", 9)
         for _, row in df_org.iterrows():
@@ -206,35 +219,35 @@ def _export_pdf(
                 str(int(row.get("Pendentes", 0))),
             ]
             for v, w in zip(vals, col_w):
-                pdf.cell(w, 6, v, border=1)
+                pdf.cell(w, 6, _p(v), border=1)
             pdf.ln()
 
     pdf.ln(6)
 
-    # Seção 3 — Satisfação
+    # Secao 3 — Satisfacao
     pdf.set_font("Helvetica", "B", 13)
     pdf.set_fill_color(36, 64, 97)
     pdf.set_text_color(255, 255, 255)
-    pdf.cell(0, 8, "Seção 3 — Índice de Satisfação", ln=True, fill=True)
+    pdf.cell(0, 8, _p("Secao 3 - Indice de Satisfacao"), ln=True, fill=True)
     pdf.set_text_color(0, 0, 0)
     pdf.ln(2)
 
     pdf.set_font("Helvetica", "", 11)
-    pdf.cell(60, 7, f"Total de Votos: {total_votos}", border=1)
-    pdf.cell(65, 7, f"CSAT: {csat:.1f}%", border=1)
+    pdf.cell(60, 7, _p(f"Total de Votos: {total_votos}"), border=1)
+    pdf.cell(65, 7, _p(f"CSAT: {csat:.1f}%"), border=1)
     nm_str = f"{nota_media:.2f}/5" if not pd.isna(nota_media) else "N/A"
-    pdf.cell(65, 7, f"Nota Média: {nm_str}", border=1)
+    pdf.cell(65, 7, _p(f"Nota Media: {nm_str}"), border=1)
     pdf.ln(10)
 
-    # Tabela satisfação por serviço
+    # Tabela satisfacao por servico
     df_sat = _build_df_sat_por_servico(df_votes)
     if not df_sat.empty:
         pdf.set_font("Helvetica", "B", 10)
         col_w2 = [90, 30, 30, 30]
-        headers2 = ["Serviço", "Votos", "Nota Média", "CSAT (%)"]
+        headers2 = ["Servico", "Votos", "Nota Media", "CSAT (%)"]
         pdf.set_fill_color(220, 230, 241)
         for h, w in zip(headers2, col_w2):
-            pdf.cell(w, 7, h, border=1, fill=True)
+            pdf.cell(w, 7, _p(h), border=1, fill=True)
         pdf.ln()
         pdf.set_font("Helvetica", "", 8)
         for _, row in df_sat.head(30).iterrows():

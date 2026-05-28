@@ -92,6 +92,7 @@ from views.cartas.tab2_por_orgao import render_tab2_por_orgao
 from views.cartas.tab3_qualidade import render_tab3_qualidade
 from views.cartas.tab4_satisfacao import render_tab4_satisfacao
 from views.cartas.tab5_cruzamentos import render_tab5_cruzamentos
+from views.cartas.tab6_relatorio_cge import render_tab6_relatorio_cge
 from utils.cartas_data_loaders import (
     load_service_cards_inventory,
     load_service_cards_errors,
@@ -368,12 +369,13 @@ elif fonte == "Cartas de Serviço":
         df_cs_votes = df_cs_votes[(df_cs_votes["data_voto"] >= start_ts) & (df_cs_votes["data_voto"] <= end_ts)]
 
 
-    tab_cs1, tab_cs2, tab_cs3, tab_cs4, tab_cs5 = st.tabs([
+    tab_cs1, tab_cs2, tab_cs3, tab_cs4, tab_cs5, tab_cs6 = st.tabs([
         "1. Visão Geral",
         "2. Por Órgão",
         "3. Qualidade / Erros",
         "4. Satisfação",
         "5. Cruzamentos Estratégicos",
+        "6. Relatório CGE",
     ])
     with tab_cs1:
         render_tab1_visao_geral(df_cs_inventory.copy(), start_ts, end_ts)
@@ -387,6 +389,12 @@ elif fonte == "Cartas de Serviço":
         # Tenta passar dados do Matomo se disponíveis na sessão
         _matomo_pages = st.session_state.get("df_svc_all", None)
         render_tab5_cruzamentos(df_cs_inventory.copy(), df_cs_errors.copy(), df_cs_votes.copy(), _matomo_pages)
+    with tab_cs6:
+        render_tab6_relatorio_cge(
+            df_cs_errors.copy(),
+            df_cs_votes.copy(),
+            df_cs_inventory.copy(),
+        )
 
 else:
     ga_api = get_ga_api()

@@ -22,6 +22,57 @@ def _classify_vote(v) -> str:
     return "Neutro"
 
 
+_SVG_PATHS = {
+    1: "M10 0C8.68678 0 7.38642 0.258658 6.17317 0.761205C4.95991 1.26375 3.85752 2.00035 2.92893 2.92893C1.05357 4.8043 0 7.34784 0 10C0 12.6522 1.05357 15.1957 2.92893 17.0711C3.85752 17.9997 4.95991 18.7362 6.17317 19.2388C7.38642 19.7413 8.68678 20 10 20C12.6522 20 15.1957 18.9464 17.0711 17.0711C18.9464 15.1957 20 12.6522 20 10C20 8.68678 19.7413 7.38642 19.2388 6.17317C18.7362 4.95991 17.9997 3.85752 17.0711 2.92893C16.1425 2.00035 15.0401 1.26375 13.8268 0.761205C12.6136 0.258658 11.3132 0 10 0ZM5 7.5V6L8 7.5C8 8.3 7.3 9 6.5 9C5.7 9 5 8.3 5 7.5ZM12.77 15.23C12.32 14.5 11.25 14 10 14C8.75 14 7.68 14.5 7.23 15.23L5.81 13.81C6.71 12.72 8.25 12 10 12C11.75 12 13.29 12.72 14.19 13.81L12.77 15.23ZM15 7.5C15 8.3 14.3 9 13.5 9C12.7 9 12 7.5L15 6V7.5Z",
+    2: "M10 0C8.68678 0 7.38642 0.258658 6.17317 0.761205C4.95991 1.26375 3.85752 2.00035 2.92893 2.92893C1.05357 4.8043 0 7.34784 0 10C0 12.6522 1.05357 15.1957 2.92893 17.0711C3.85752 17.9997 4.95991 18.7362 6.17317 19.2388C7.38642 19.7413 8.68678 20 10 20C12.6522 20 15.1957 18.9464 17.0711 17.0711C18.9464 15.1957 20 12.6522 20 10C20 8.68678 19.7413 7.38642 19.2388 6.17317C18.7362 4.95991 17.9997 3.85752 17.0711 2.92893C16.1425 2.00035 15.0401 1.26375 13.8268 0.761205C12.6136 0.258658 11.3132 0 10 0ZM5 7.5C5 6.7 5.7 6 6.5 6C7.3 6 8 6.7 8 7.5C8 8.3 7.3 9 6.5 9C5.7 9 5 8.3 5 7.5ZM12.77 15.23C12.32 14.5 11.25 14 10 14C8.75 14 7.68 14.5 7.23 15.23L5.81 13.81C6.71 12.72 8.25 12 10 12C11.75 12 13.29 12.72 14.19 13.81L12.77 15.23ZM13.5 9C12.7 9 12 8.3 12 7.5C12 6.7 12.7 6 13.5 6C14.3 6 15 6.7 15 7.5C15 8.3 14.3 9 13.5 9Z",
+    3: "M10 0C8.68678 0 7.38642 0.258658 6.17317 0.761205C4.95991 1.26375 3.85752 2.00035 2.92893 2.92893C1.05357 4.8043 0 7.34784 0 10C0 12.6522 1.05357 15.1957 2.92893 17.0711C3.85752 17.9997 4.95991 18.7362 6.17317 19.2388C7.38642 19.7413 8.68678 20 10 20C12.6522 20 15.1957 18.9464 17.0711 17.0711C18.9464 15.1957 20 12.6522 20 10C20 8.68678 19.7413 7.38642 19.2388 6.17317C18.7362 4.95991 17.9997 3.85752 17.0711 2.92893C16.1425 2.00035 15.0401 1.26375 13.8268 0.761205C12.6136 0.258658 11.3132 0 10 0M5 7.5C5 7.10218 5.15804 6.72064 5.43934 6.43934C5.72064 6.15804 6.10218 6 6.5 6C6.89782 6 7.27936 6.15804 7.56066 6.43934C7.84196 6.72064 8 7.10218 8 7.5C8 7.89782 7.84196 8.27936 7.56066 8.56066C7.27936 8.84196 6.89782 9 6.5 9C6.10218 9 5.72064 8.84196 5.43934 8.56066C5.15804 8.27936 5 7.89782 5 7.5ZM14 14H6V12H14V14ZM13.5 9C13.1022 9 12.7206 8.84196 12.4393 8.56066C12.158 8.27936 12 7.89782 12 7.5C12 7.10218 12.158 6.72064 12.4393 6.43934C12.7206 6.15804 13.1022 6 13.5 6C13.8978 6 14.2794 6.15804 14.5607 6.43934C14.842 6.72064 15 7.10218 15 7.5C15 7.89782 14.842 8.27936 14.5607 8.56066C14.2794 8.84196 13.8978 9 13.5 9V9Z",
+    4: "M10 0C8.68678 0 7.38642 0.258658 6.17317 0.761205C4.95991 1.26375 3.85752 2.00035 2.92893 2.92893C1.05357 4.8043 0 7.34784 0 10C0 12.6522 1.05357 15.1957 2.92893 17.0711C3.85752 17.9997 4.95991 18.7362 6.17317 19.2388C7.38642 19.7413 8.68678 20 10 20C12.6522 20 15.1957 18.9464 17.0711 17.0711C18.9464 15.1957 20 12.6522 20 10C20 8.68678 19.7413 7.38642 19.2388 6.17317C18.7362 4.95991 17.9997 3.85752 17.0711 2.92893C16.1425 2.00035 15.0401 1.26375 13.8268 0.761205C12.6136 0.258658 11.3132 0 10 0ZM5 7.5C5 6.7 5.7 6 6.5 6C7.3 6 8 6.7 8 7.5C8 8.3 7.3 9 6.5 9C5.7 9 5 8.3 5 7.5ZM10 15.23C8.25 15.23 6.71 14.5 5.81 13.42L7.23 12C7.68 12.72 8.75 13.23 10 13.23C11.25 13.23 12.32 12.72 12.77 12L14.19 13.42C13.29 14.5 11.75 15.23 10 15.23ZM13.5 9C12.7 9 12 8.3 12 7.5C12 6.7 12.7 6 13.5 6C14.3 6 15 6.7 15 7.5C15 8.3 14.3 9 13.5 9Z",
+    5: "M10 0C4.47 0 0 4.47 0 10C0 15.53 4.47 20 10 20C12.6522 20 15.1957 18.9464 17.0711 17.0711C18.9464 15.1957 20 12.6522 20 10C20 4.47 15.5 0 10 0ZM6.88 5.82L9 7.94L7.94 9L6.88 7.94L5.82 9L4.76 7.94L6.88 5.82ZM10 15.5C7.67 15.5 5.69 14.04 4.89 12H15.11C14.31 14.04 12.33 15.5 10 15.5ZM14.18 9L13.12 7.94L12.06 9L11 7.94L13.12 5.82L15.24 7.94L14.18 9Z",
+}
+
+_RATING_META = [
+    (1, "MUITO INSATISFEITO", "#EF4444"),
+    (2, "INSATISFEITO",       "#F97316"),
+    (3, "REGULAR",            "#F59E0B"),
+    (4, "SATISFEITO",         "#4ADE80"),
+    (5, "MUITO SATISFEITO",   "#22C55E"),
+]
+
+
+def _render_satisfaction_icons(df: pd.DataFrame, total_votos: int) -> None:
+    counts = df["avaliacao_voto_servico"].value_counts()
+
+    items_html = ""
+    for nota, label, cor in _RATING_META:
+        n = int(counts.get(nota, 0))
+        pct = (n / total_votos * 100) if total_votos else 0
+        svg_path = _SVG_PATHS[nota]
+        items_html += f"""
+        <div style="text-align:center; min-width:100px; flex:1;">
+          <div style="width:64px; height:64px; border-radius:50%; background:{cor};
+                      display:flex; align-items:center; justify-content:center; margin:0 auto;">
+            <svg focusable="false" viewBox="0 0 20 20" aria-hidden="true" fill="none"
+                 style="width:32px; height:32px;">
+              <path d="{svg_path}" fill="white"/>
+            </svg>
+          </div>
+          <p style="font-size:11px; font-weight:700; letter-spacing:.4px;
+                    margin:8px 0 2px; color:#374151; line-height:1.3;">{label}</p>
+          <p style="font-size:20px; font-weight:800; margin:0; color:#111827;">{n}</p>
+          <p style="font-size:13px; color:#6B7280; margin:2px 0 0;">{pct:.1f}%</p>
+        </div>"""
+
+    st.markdown(
+        f"""
+        <div style="display:flex; justify-content:center; align-items:flex-start;
+                    gap:12px; flex-wrap:wrap; padding:20px 8px 8px; margin-bottom:4px;">
+          {items_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_tab4_satisfacao(df_votes: pd.DataFrame):
     """
     df_votes: resultado de load_service_cards_votes()
@@ -61,13 +112,12 @@ def render_tab4_satisfacao(df_votes: pd.DataFrame):
     max_possivel_global = total_votos * 5
     csat_score_global = (soma_notas_global / max_possivel_global) * 100 if max_possivel_global > 0 else 0
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1, c2, c3 = st.columns(3)
     c1.metric("🗳️ Total de Votos", f"{int(total_votos)}")
     c2.metric("📊 Indice CSAT", f"{csat_score_global:.1f}%")
-    c3.metric("😊 Satisfeitos", f"{int(satisfeitos)}", f"{pct_sat:.1f}%")
-    c4.metric("😐 Neutros", f"{int(neutros)}")
-    c5.metric("😞 Insatisfeitos", f"{int(insatisfeitos)}", f"-{pct_insat:.1f}%", delta_color="inverse")
-    c6.metric("⭐ Nota Media", f"{nota_media:.2f}/5" if not pd.isna(nota_media) else "N/A")
+    c3.metric("⭐ Nota Media", f"{nota_media:.2f}/5" if not pd.isna(nota_media) else "N/A")
+
+    _render_satisfaction_icons(df, total_votos)
 
     st.markdown("---")
     col_gauge, col_ev = st.columns([1, 2])
@@ -124,74 +174,87 @@ def render_tab4_satisfacao(df_votes: pd.DataFrame):
             st.markdown(
                 """
                 **O que e o CSAT?**
-                O Indice de Satisfacao (CSAT) mede a avaliacao dos cidadaos em uma escala de 1 a 5 estrelas:
-                * ⭐ **1 a 2:** Insatisfeito *(Exige melhorias urgentes)*
-                * ⭐⭐⭐ **3:** Neutro *(Experiencia mediana)*
-                * ⭐⭐⭐⭐ e ⭐⭐⭐⭐⭐ **4 a 5:** Satisfeito *(Atende ou supera as expectativas)*
+                O Customer Satisfaction Score (CSAT) mede a satisfacao dos cidadaos com base em avaliacoes
+                de 1 a 5, conforme a metodologia oficial do Portal ms.gov.br:
 
-                **Como chegamos a essa porcentagem?**
-                Somamos **todas as estrelas recebidas** e dividimos pela **pontuacao maxima possivel**
-                (o total de votos multiplicado por 5).
+                * ⭐ **1 — Muito Insatisfeito:** Experiencia muito abaixo das expectativas.
+                * ⭐⭐ **2 — Insatisfeito:** Experiencia nao atendeu as expectativas.
+                * ⭐⭐⭐ **3 — Regular:** Experiencia adequada, mas nao excepcional.
+                * ⭐⭐⭐⭐ **4 — Satisfeito:** Experiencia atendeu as expectativas.
+                * ⭐⭐⭐⭐⭐ **5 — Muito Satisfeito:** Experiencia superou as expectativas.
 
-                **Exemplo rapido:**
-                Se 100 pessoas avaliassem o servico, a nota maxima possivel seria 500 estrelas.
-                Se a soma real das notas dadas por essas pessoas for 400 estrelas, a conta e:
-                👉 `(400 / 500) x 100 = 80%`
+                **Formula:**
+                👉 `CSAT = (soma de todas as notas / total de votos × 5) × 100`
+
+                **Exemplo:** 100 avaliacoes com soma de notas igual a 400:
+                `(400 / 500) × 100 = 80%`
                 """
             )
 
-        dist_df = pd.DataFrame(
-            {
-                "Classificacao": ["Satisfeito", "Neutro", "Insatisfeito"],
-                "Votos": [satisfeitos, neutros, insatisfeitos],
-            }
-        )
+        _label_map = {1: "Muito Insatisfeito", 2: "Insatisfeito", 3: "Regular", 4: "Satisfeito", 5: "Muito Satisfeito"}
+        _color_map_dist = {
+            "Muito Insatisfeito": "#EF4444",
+            "Insatisfeito": "#F97316",
+            "Regular": "#F59E0B",
+            "Satisfeito": "#4ADE80",
+            "Muito Satisfeito": "#22C55E",
+        }
+        _label_order = list(_label_map.values())
+        counts_dist = df["avaliacao_voto_servico"].value_counts().reindex([1, 2, 3, 4, 5], fill_value=0)
+        dist_df = pd.DataFrame({
+            "Avaliacao": [_label_map[i] for i in [1, 2, 3, 4, 5]],
+            "Votos": counts_dist.values,
+        })
         fig_dist = px.bar(
             dist_df,
-            x="Classificacao",
+            x="Avaliacao",
             y="Votos",
-            color="Classificacao",
-            color_discrete_map={
-                "Satisfeito": "#22C55E",
-                "Neutro": "#F59E0B",
-                "Insatisfeito": "#EF4444",
-            },
+            color="Avaliacao",
+            color_discrete_map=_color_map_dist,
+            category_orders={"Avaliacao": _label_order},
             text="Votos",
         )
         fig_dist.update_traces(textposition="outside")
         fig_dist.update_layout(
-            height=220,
+            height=260,
             margin=dict(t=10, b=10, l=10, r=10),
             showlegend=False,
+            xaxis_title="",
         )
         st.plotly_chart(fig_dist, use_container_width=True)
 
     with col_ev:
         st.markdown("#### Evolucao da Satisfacao por Mes")
+        _ev_label_map = {1: "Muito Insatisfeito", 2: "Insatisfeito", 3: "Regular", 4: "Satisfeito", 5: "Muito Satisfeito"}
+        _ev_color_map = {
+            "Muito Insatisfeito": "#EF4444",
+            "Insatisfeito": "#F97316",
+            "Regular": "#F59E0B",
+            "Satisfeito": "#4ADE80",
+            "Muito Satisfeito": "#22C55E",
+        }
         df_ev = df.copy()
         df_ev["Mes"] = df_ev["data_voto"].dt.to_period("M").astype(str)
+        df_ev["Avaliacao"] = df_ev["avaliacao_voto_servico"].map(_ev_label_map)
 
-        df_group = df_ev.groupby(["Mes", "Classificacao"]).size().reset_index(name="Votos")
+        df_group = df_ev.groupby(["Mes", "Avaliacao"]).size().reset_index(name="Votos")
 
         fig_ev = px.bar(
             df_group,
             x="Mes",
             y="Votos",
-            color="Classificacao",
+            color="Avaliacao",
             barmode="stack",
-            color_discrete_map={
-                "Satisfeito": "#22C55E",
-                "Neutro": "#F59E0B",
-                "Insatisfeito": "#EF4444",
-            },
-            labels={"Classificacao": "Classificacao"},
+            color_discrete_map=_ev_color_map,
+            category_orders={"Avaliacao": list(_ev_label_map.values())},
+            labels={"Avaliacao": "Avaliacao"},
         )
         fig_ev.update_layout(
             height=300,
             margin=dict(t=10, b=10, l=10, r=10),
             xaxis_title="",
             yaxis_title="Votos",
-            legend_title_text="Classificacao",
+            legend_title_text="Avaliacao",
         )
         st.plotly_chart(fig_ev, use_container_width=True)
 

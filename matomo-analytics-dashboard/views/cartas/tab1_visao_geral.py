@@ -9,11 +9,11 @@ import plotly.graph_objects as go
 from utils.charts_formatter import format_pie_chart
 
 
-def render_tab1_visao_geral(df: pd.DataFrame):
+def render_tab1_visao_geral(df: pd.DataFrame, start_ts=None, end_ts=None):
     """
     df: resultado de load_service_cards_inventory()
     Colunas esperadas: idservico, servico_ativo, digital, online, agendavel,
-                       acesso_externo, data_criacao_servico, siglaorgao
+                       acesso_externo, data_criacao_servico, siglaorgao, data_atualizacao_servico
     """
     st.subheader("📋 Visão Geral do Inventário de Serviços")
 
@@ -42,9 +42,23 @@ def render_tab1_visao_geral(df: pd.DataFrame):
     pct_digital = (digitais / ativos * 100) if ativos > 0 else 0
 
     # ------------------------------------------------------------------ #
+    # Cálculo de Cartas Revisadas no Período                               #
+    # ------------------------------------------------------------------ #
+    revisadas = 0
+    if start_ts is not None and end_ts is not None and "data_atualizacao_servico" in df.columns:
+        # Convert to datetime if it's not already
+        df["data_atualizacao_servico"] = pd.to_datetime(df["data_atualizacao_servico"], errors="coerce", utc=True)
+        revisadas = df[
+            (df["data_atualizacao_servico"] >= start_ts) & 
+            (df["data_atualizacao_servico"] <= end_ts)
+        ].shape[0]
+    
+    pct_revisadas = (revisadas / total * 100) if total > 0 else 0
+
+    # ------------------------------------------------------------------ #
     # KPIs                                                                 #
     # ------------------------------------------------------------------ #
-    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
     col1.metric("📦 Total", f"{int(total)}")
     col2.metric("✅ Ativos", f"{int(ativos)}")
     col3.metric("❌ Inativos", f"{int(inativos)}")
@@ -52,6 +66,7 @@ def render_tab1_visao_geral(df: pd.DataFrame):
     col5.metric("🏢 Presenciais", f"{int(presenciais)}")
     col6.metric("🔀 Híbridos", f"{int(hibridos)}")
     col7.metric("📊 % Digital", f"{pct_digital:.1f}%")
+    col8.metric("🔄 Revisadas (Período)", f"{revisadas} ({pct_revisadas:.1f}%)")
 
     st.markdown("---")
 

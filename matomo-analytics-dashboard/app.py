@@ -101,6 +101,20 @@ from utils.cartas_data_loaders import (
 
 st.set_page_config(page_title="Analytics Dashboard", page_icon="📊", layout="wide")
 
+st.markdown("""
+    <style>
+        @media print {
+            .stSidebar { display: none !important; }
+            header { display: none !important; }
+            footer { display: none !important; }
+            .stApp { margin-top: -60px !important; }
+            /* Esconder botões na impressão */
+            .stButton { display: none !important; }
+            /* Expandir a largura para ocupar toda a página ao imprimir */
+            .main .block-container { max-width: 100% !important; padding-top: 0 !important;}
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 def get_api():
     from config import MATOMO_URL, MATOMO_TOKEN, MATOMO_SITE_ID
@@ -230,10 +244,25 @@ periodo_str = (
     else f"Data Base: {single_date.strftime('%d/%m/%Y')} | Recorte: {period_label}"
 )
 
-st.title(f"📊 Dashboard Analítico — {fonte_label}")
+# Botão de impressão (HTML hack para acionar o print do navegador)
+col_title, col_print = st.columns([8, 2])
+with col_title:
+    st.title(f"📊 Dashboard Analítico — {fonte_label}")
+with col_print:
+    st.write("") # spacer
+    if st.button("🖨️ Imprimir / Exportar PDF"):
+        st.components.v1.html(
+            """
+            <script>
+                window.parent.print();
+            </script>
+            """,
+            height=0
+        )
+
 st.markdown(f"**🗓️ Período:** {periodo_str}")
 if fonte == "Cartas de Serviço":
-    st.markdown("*Nota: O filtro de data se aplica aos Erros e Votos. O Inventário exibe o retrato global atual.*")
+    st.markdown("*Nota: O filtro de data se aplica aos Erros, Votos e à métrica de Cartas Revisadas.*")
 
 # ==========================================
 # CARREGAMENTO E RENDERIZAÇÃO
@@ -347,7 +376,7 @@ elif fonte == "Cartas de Serviço":
         "5. Cruzamentos Estratégicos",
     ])
     with tab_cs1:
-        render_tab1_visao_geral(df_cs_inventory.copy())
+        render_tab1_visao_geral(df_cs_inventory.copy(), start_ts, end_ts)
     with tab_cs2:
         render_tab2_por_orgao(df_cs_inventory.copy())
     with tab_cs3:

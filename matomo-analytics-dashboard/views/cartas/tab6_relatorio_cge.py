@@ -129,6 +129,7 @@ def _export_xlsx(df_errors: pd.DataFrame, df_votes: pd.DataFrame) -> bytes:
         df_errors[col] = df_errors[col].dt.tz_localize(None)
 
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        wrote_any = False
         # Aba Erros
         if not df_errors.empty:
             cols_erros = [c for c in [
@@ -149,6 +150,7 @@ def _export_xlsx(df_errors: pd.DataFrame, df_votes: pd.DataFrame) -> bytes:
             df_errors[cols_erros].rename(columns=rename_erros).to_excel(
                 writer, sheet_name="Erros", index=False
             )
+            wrote_any = True
         # Aba Satisfação
         df_sat = _build_df_sat_por_servico(df_votes)
         if not df_sat.empty:
@@ -160,6 +162,11 @@ def _export_xlsx(df_errors: pd.DataFrame, df_votes: pd.DataFrame) -> bytes:
                 "csat_pct": "CSAT (%)",
             }).drop(columns=["Soma Notas"], errors="ignore").to_excel(
                 writer, sheet_name="Satisfação", index=False
+            )
+            wrote_any = True
+        if not wrote_any:
+            pd.DataFrame({"Info": ["Sem dados disponíveis para o período selecionado."]}).to_excel(
+                writer, sheet_name="Sem dados", index=False
             )
     return buf.getvalue()
 

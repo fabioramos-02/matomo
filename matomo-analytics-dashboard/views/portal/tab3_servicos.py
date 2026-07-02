@@ -1,9 +1,24 @@
 import streamlit as st
 import plotly.express as px
+from datetime import date as dt_date
+
 from utils.data_processor import identify_service_cards
 from utils.charts_formatter import create_top_bar_chart, format_pie_chart
 
-def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df_services_trend=None, trend_granularity='day'):
+
+def _months_in_range(start_date: str | None, end_date: str | None) -> float:
+    if not start_date or not end_date:
+        return 1.0
+    try:
+        s = dt_date.fromisoformat(start_date)
+        e = dt_date.fromisoformat(end_date)
+    except (TypeError, ValueError):
+        return 1.0
+    days = max((e - s).days + 1, 1)
+    return max(days / 30.44, 1.0)
+
+
+def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df_services_trend=None, trend_granularity='day', start_date=None, end_date=None):
     is_ga = fonte == "MS Digital (GA4)"
 
     if is_ga:
@@ -68,16 +83,28 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
             
             st.markdown("---")
 
+        n_meses = _months_in_range(start_date, end_date)
+        st.caption(
+            f"📅 Período: **{start_date or '—'} → {end_date or '—'}** "
+            f"(~**{n_meses:.1f} meses**). Média mensal = Visitas ÷ meses do período."
+        )
+
         df_cat = df_services.groupby('Categoria', as_index=False)['Visitas'].sum().sort_values(by='Visitas', ascending=False)
-        
+        df_cat['Média Mensal'] = (df_cat['Visitas'] / n_meses).round(1)
+
         col_cat, col_serv = st.columns(2)
         with col_cat:
             st.subheader("Top Categorias de Serviço (Geral)")
             st.markdown("Clique em uma barra para filtrar os serviços ao lado:")
-            
+
             top_cat = df_cat.head(10)
             fig_cat = create_top_bar_chart(top_cat, 'Visitas', 'Categoria', 'Oranges')
             fig_cat.update_layout(clickmode='event+select')
+            if 'Média Mensal' in top_cat.columns:
+                fig_cat.update_traces(
+                    customdata=top_cat[['Média Mensal']].values,
+                    hovertemplate='<b>%{y}</b><br>Visitas: %{x:,.0f}<br>Média mensal: %{customdata[0]:.1f}<extra></extra>',
+                )
             
             # Interactive Selection
             event = st.plotly_chart(fig_cat, width="stretch", on_select="rerun", selection_mode="points")
@@ -132,25 +159,34 @@ def render_tab3_servicos(df_pages, fonte="Portal (Matomo)", df_services=None, df
             
         with col_serv:
             st.subheader(f"Top 10 Cartas ({categoria_selecionada})")
-            
-            top_10 = df_filtered.head(10)
+
+            top_10 = df_filtered.head(10).copy()
+            top_10['Média Mensal'] = (top_10['Visitas'] / n_meses).round(1)
             fig_serv = create_top_bar_chart(top_10, 'Visitas', 'Nome do Serviço', 'Blues')
+            fig_serv.update_traces(
+                customdata=top_10[['Média Mensal']].values,
+                hovertemplate='<b>%{y}</b><br>Visitas: %{x:,.0f}<br>Média mensal: %{customdata[0]:.1f}<extra></extra>',
+            )
             st.plotly_chart(fig_serv, width="stretch")
 
         st.subheader("Explorar Cartas (Links Diretos)")
-        
+
         # Adiciona a coluna de ranking/classificação (#)
         cols_to_show = ['Nome do Serviço', 'Órgão', 'Categoria', 'Modalidade', 'Visitas', 'Link']
         cols_to_show = [c for c in cols_to_show if c in df_filtered.columns]
-        
+
         df_table = df_filtered[cols_to_show].copy()
         df_table.reset_index(drop=True, inplace=True)
         df_table.insert(0, '#', df_table.index + 1)
-        
+        if 'Visitas' in df_table.columns:
+            df_table['Média Mensal'] = (df_table['Visitas'] / n_meses).round(1)
+
         st.dataframe(
             df_table,
             column_config={
                 "#": st.column_config.NumberColumn("#", width="small"),
+                "Visitas": st.column_config.NumberColumn("Visitas", format="%d"),
+                "Média Mensal": st.column_config.NumberColumn("Média Mensal", format="%.1f"),
                 "Link": st.column_config.LinkColumn("Acessar no Portal", display_text="🔗 Abrir Serviço")
             },
             hide_index=True,

@@ -323,11 +323,11 @@ if fonte == "Portal (Matomo)":
     tabs = st.tabs(tab_list)
     
     with tabs[0]:
-        render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geojson, visits_summary=visits_summary)
+        render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geojson, visits_summary=visits_summary, start_date=matomo_start, end_date=matomo_end)
     with tabs[1]:
         render_tab2_busca(df_search)
     with tabs[2]:
-        render_tab3_servicos(df_pages, df_services=df_svc_all, df_services_trend=df_services_trend, trend_granularity=trend_granularity or 'day')
+        render_tab3_servicos(df_pages, df_services=df_svc_all, df_services_trend=df_services_trend, trend_granularity=trend_granularity or 'day', start_date=matomo_start, end_date=matomo_end)
     with tabs[3]:
         render_tab4_jornada(df_pages, api, period, date, selected_site_id)
     if show_tab5:

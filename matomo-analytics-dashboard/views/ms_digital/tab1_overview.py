@@ -1,10 +1,29 @@
+from datetime import date as dt_date
+
 import streamlit as st
 import plotly.express as px
 
 
-def render_ga_tab1_overview(overview: dict, df_platform, df_funnel):
+def _months_in_range(start_date, end_date):
+    if not start_date or not end_date:
+        return 1.0
+    try:
+        s = dt_date.fromisoformat(start_date)
+        e = dt_date.fromisoformat(end_date)
+    except (TypeError, ValueError):
+        return 1.0
+    return max(((e - s).days + 1) / 30.44, 1.0)
+
+
+def _fmt_int(n):
+    return f"{int(n):,}".replace(",", ".")
+
+
+def render_ga_tab1_overview(overview: dict, df_platform, df_funnel, start_date=None, end_date=None, downloads_lifetime=None, downloads_last12m=None):
     st.header("Visão Geral — MS Digital App")
     st.markdown("Métricas consolidadas de uso do aplicativo no período selecionado.")
+
+    n_meses = _months_in_range(start_date, end_date)
 
     # Extrai Novos Downloads (first_open) do df_funnel
     novos_downloads = 0
@@ -13,19 +32,48 @@ def render_ga_tab1_overview(overview: dict, df_platform, df_funnel):
         if not df_fo.empty:
             novos_downloads = int(df_fo.iloc[0]["Usuários"])
 
-    # KPIs
+    # ── Downloads acumulados (vigência + últimos 12 meses) ─────────────
+    if downloads_lifetime or downloads_last12m:
+        st.markdown("#### 📥 Downloads Acumulados")
+        col_life, col_12m = st.columns(2)
+        if downloads_lifetime:
+            life_users = downloads_lifetime.get("users", 0)
+            life_start = downloads_lifetime.get("start", "—")
+            life_end = downloads_lifetime.get("end", "—")
+            life_months = _months_in_range(life_start, life_end)
+            col_life.metric("🗓️ Downloads Totais (Vigência)", _fmt_int(life_users))
+            col_life.caption(
+                f"Desde **{life_start}** até **{life_end}** · "
+                f"Média mensal: **{_fmt_int(life_users / life_months)}**"
+            )
+        if downloads_last12m:
+            m12_users = downloads_last12m.get("users", 0)
+            col_12m.metric("📆 Downloads — Últimos 12 meses", _fmt_int(m12_users))
+            col_12m.caption(f"Média mensal: **{_fmt_int(m12_users / 12)}**")
+        st.markdown("---")
+
+    st.markdown("#### 📊 Métricas do Período Selecionado")
+    # KPIs período
     col0, col1, col2, col3, col4 = st.columns(5)
-    col0.metric("📥 Novos Downloads", f"{novos_downloads:,}".replace(",", "."))
-    col1.metric("👤 Usuários Ativos", f"{overview['total_users']:,}".replace(",", "."))
-    col2.metric("📱 Sessões", f"{overview['total_sessions']:,}".replace(",", "."))
-    col3.metric("🖥️ Visualizações de Tela", f"{overview['total_views']:,}".replace(",", "."))
+
+    col0.metric("📥 Novos Downloads", _fmt_int(novos_downloads))
+    col0.caption(f"Média mensal: **{_fmt_int(novos_downloads / n_meses)}**")
+
+    col1.metric("👤 Usuários Ativos", _fmt_int(overview['total_users']))
+    col1.caption(f"Média mensal: **{_fmt_int(overview['total_users'] / n_meses)}**")
+
+    col2.metric("📱 Sessões", _fmt_int(overview['total_sessions']))
+    col2.caption(f"Média mensal: **{_fmt_int(overview['total_sessions'] / n_meses)}**")
+
+    col3.metric("🖥️ Visualizações de Tela", _fmt_int(overview['total_views']))
+    col3.caption(f"Média mensal: **{_fmt_int(overview['total_views'] / n_meses)}**")
+
     col4.metric("⏱️ Engajamento Médio", overview.get("avg_engagement", "0s"))
+    col4.caption("Tempo médio por usuário ativo")
 
     if overview["total_sessions"] > 0:
         telas_por_sessao = round(overview["total_views"] / overview["total_sessions"], 1)
-        col1.caption(f"Telas por sessão: **{telas_por_sessao}**")
-    
-    col4.caption("Tempo médio por usuário ativo")
+        st.caption(f"📌 **Telas por sessão:** {telas_por_sessao} · Período: {start_date} → {end_date} (~{n_meses:.1f} meses)")
 
     st.markdown("---")
 

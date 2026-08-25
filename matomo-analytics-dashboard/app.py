@@ -71,6 +71,8 @@ from utils.ga_data_loaders import (
     load_ga_services_trend,
     load_ga_external_links,
     load_ga_country_map,
+    load_ga_downloads_lifetime,
+    load_ga_downloads_last12m,
 )
 
 # Views Portal (Matomo)
@@ -414,6 +416,8 @@ else:
         df_services_trend = load_ga_services_trend(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID, tuple(top5))
         df_external_links = load_ga_external_links(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID)
         df_country_map = load_ga_country_map(ga_api, ga_start, ga_end, GOOGLE_PROPERTY_ID)
+        downloads_lifetime = load_ga_downloads_lifetime(ga_api, GOOGLE_PROPERTY_ID)
+        downloads_last12m = load_ga_downloads_last12m(ga_api, GOOGLE_PROPERTY_ID)
         ms_geojson = load_ms_geojson()
 
     if ga_overview["total_users"] == 0 and df_screens.empty:
@@ -427,10 +431,18 @@ else:
         "4. Jornada do Usuário",
     ])
     with tab1:
-        render_ga_tab1_overview(ga_overview, df_platform, df_funnel)
+        render_ga_tab1_overview(
+            ga_overview, df_platform, df_funnel,
+            start_date=ga_start, end_date=ga_end,
+            downloads_lifetime=downloads_lifetime,
+            downloads_last12m=downloads_last12m,
+        )
     with tab2:
-        render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_links)
+        render_ga_tab2_funcionalidades(
+            df_services, df_services_trend, df_external_links,
+            start_date=ga_start, end_date=ga_end,
+        )
     with tab3:
         render_ga_tab3_perfil(df_cities, df_os, df_device_types, df_time, ms_geojson, df_country_map)
     with tab4:
-        render_ga_tab4_jornada(df_funnel)
+        render_ga_tab4_jornada(df_funnel, start_date=ga_start, end_date=ga_end)

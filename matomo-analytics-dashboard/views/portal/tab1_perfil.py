@@ -72,36 +72,44 @@ def _render_ranking_card(df_top: pd.DataFrame, badge: str):
     st.markdown(
         """
         <style>
-        .geo-card { background:#fff; border:1px solid #E5E9F0; border-radius:12px; padding:18px 18px 8px; box-shadow:0 2px 6px rgba(15,23,42,0.06); }
-        .geo-card h3 { margin:0; color:#0F3057; font-size:18px; letter-spacing:0.4px; font-weight:800; }
-        .geo-card .geo-sub { color:#5B6B84; font-size:13px; margin-bottom:10px; }
-        .geo-badge { display:inline-block; background:#DCE7F5; color:#0F3057; font-weight:700; padding:4px 14px; border-radius:6px; font-size:12.5px; letter-spacing:0.6px; margin-bottom:12px; }
-        .geo-table { width:100%; border-collapse:collapse; font-size:13px; }
-        .geo-table thead th { background:#0F3057; color:#fff; text-align:left; padding:8px 10px; font-weight:700; font-size:11.5px; letter-spacing:0.5px; }
-        .geo-table td { padding:6px 10px; border-bottom:1px solid #F0F2F6; color:#111827; }
+        .geo-card { background:#fff; border:1px solid #E5E9F0; border-radius:14px; padding:22px 22px 14px; box-shadow:0 4px 14px rgba(15,23,42,0.08); height:100%; }
+        .geo-head { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+        .geo-head svg { width:26px; height:26px; }
+        .geo-card h3 { margin:0; color:#0F3057; font-size:20px; letter-spacing:0.5px; font-weight:800; }
+        .geo-card .geo-sub { color:#5B6B84; font-size:13.5px; margin-bottom:14px; }
+        .geo-badge { display:inline-block; background:#DCE7F5; color:#0F3057; font-weight:800; padding:6px 22px; border-radius:6px; font-size:13px; letter-spacing:0.8px; margin-bottom:16px; text-align:center; }
+        .geo-table { width:100%; border-collapse:collapse; font-size:13.5px; }
+        .geo-table thead th { background:#0F3057; color:#fff; text-align:left; padding:10px 12px; font-weight:800; font-size:11.5px; letter-spacing:0.6px; }
+        .geo-table thead th.right { text-align:right; }
+        .geo-table td { padding:8px 12px; border-bottom:1px solid #EEF2F7; color:#111827; }
         .geo-table tr:last-child td { border-bottom:none; }
-        .geo-table tr:nth-child(even) td { background:#F7FAFF; }
-        .geo-pos { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:#1E5BA8; color:#fff; font-size:11px; font-weight:700; }
-        .geo-vol { color:#0A2540; font-weight:800; text-align:right; font-variant-numeric:tabular-nums; font-size:13.5px; }
-        .geo-foot { color:#9AA5B8; font-size:10.5px; margin-top:8px; }
+        .geo-pos { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#1E5BA8; color:#fff; font-size:12px; font-weight:800; }
+        .geo-city { font-weight:600; color:#1F2937; }
+        .geo-vol { color:#0F3057; font-weight:800; text-align:right; font-variant-numeric:tabular-nums; font-size:14.5px; }
+        .geo-foot { color:#9AA5B8; font-size:10.5px; margin-top:10px; }
         </style>
         """,
         unsafe_allow_html=True,
     )
     rows_html = "".join(
         f"<tr><td><span class='geo-pos'>{i+1}</span></td>"
-        f"<td>{row['Cidade']}</td>"
+        f"<td class='geo-city'>{row['Cidade']}</td>"
         f"<td class='geo-vol'>{int(row['Visitas']):,}</td></tr>".replace(",", ".")
         for i, row in df_top.reset_index(drop=True).iterrows()
     )
     st.markdown(
         f"""
         <div class="geo-card">
-          <h3>🗺️ DISTRIBUIÇÃO GEOGRÁFICA</h3>
+          <div class="geo-head">
+            <span style="font-size:22px;">🗺️</span>
+            <h3>DISTRIBUIÇÃO GEOGRÁFICA</h3>
+          </div>
           <div class="geo-sub">Volume de Acessos</div>
-          <div class="geo-badge">{badge}</div>
+          <div style="text-align:center;">
+            <div class="geo-badge">{badge}</div>
+          </div>
           <table class="geo-table">
-            <thead><tr><th>POS.</th><th>CIDADE</th><th style="text-align:right;">VOLUME DE ACESSOS</th></tr></thead>
+            <thead><tr><th>POS.</th><th>CIDADE</th><th class="right">VOLUME DE ACESSOS</th></tr></thead>
             <tbody>{rows_html}</tbody>
           </table>
           <div class="geo-foot">* Dados referentes ao volume total de acessos.</div>
@@ -111,18 +119,22 @@ def _render_ranking_card(df_top: pd.DataFrame, badge: str):
     )
 
 
-def _render_pin_map(df_top: pd.DataFrame, ms_geojson):
+def _render_pin_map(df_top: pd.DataFrame, ms_geojson, height: int = 720):
     coords = _load_ms_city_coords()
     df = df_top.copy()
     df["_key"] = df["Cidade"].astype(str).map(_strip_accents)
     df["lat"] = df["_key"].map(lambda k: coords.get(k, (None, None))[0])
     df["lon"] = df["_key"].map(lambda k: coords.get(k, (None, None))[1])
-    df = df.dropna(subset=["lat", "lon"])
+    df = df.dropna(subset=["lat", "lon"]).reset_index(drop=True)
     if df.empty:
         st.info("Coordenadas indisponíveis para as cidades no período.")
         return
-    df["cidade_label"] = df["Cidade"]
-    df["valor_label"] = df["Visitas"].astype(int).map(lambda v: f"{v:,}".replace(",", "."))
+
+    df["valor_fmt"] = df["Visitas"].astype(int).map(lambda v: f"{v:,}".replace(",", "."))
+    df["label_full"] = df.apply(lambda r: f"<b>{r['Cidade']}</b><br><b>{r['valor_fmt']}</b>", axis=1)
+
+    df_labeled = df.head(10).copy()
+    df_rest = df.iloc[10:].copy()
 
     fig = go.Figure()
     if ms_geojson:
@@ -133,49 +145,41 @@ def _render_pin_map(df_top: pd.DataFrame, ms_geojson):
                 locations=[f["properties"]["name"] for f in feats],
                 z=[1] * len(feats),
                 featureidkey="properties.name",
-                colorscale=[[0, "#EEF3FB"], [1, "#DCE7F5"]],
+                colorscale=[[0, "#E9F0FA"], [1, "#CFDCEF"]],
                 showscale=False,
-                marker_line_color="#7B9BC6",
-                marker_line_width=0.9,
+                marker_line_color="#6E8CB8",
+                marker_line_width=1.0,
                 hoverinfo="skip",
+            )
+        )
+
+    if not df_rest.empty:
+        fig.add_trace(
+            go.Scattermapbox(
+                lat=df_rest["lat"], lon=df_rest["lon"],
+                mode="markers",
+                marker=dict(size=10, color="#0F3057"),
+                hoverinfo="text",
+                hovertext=df_rest.apply(
+                    lambda r: f"<b>{r['Cidade']}</b><br>Visitas: {r['valor_fmt']}", axis=1
+                ),
+                name="Outras",
             )
         )
 
     fig.add_trace(
         go.Scattermapbox(
-            lat=df["lat"],
-            lon=df["lon"],
-            mode="markers",
-            marker=dict(size=13, color="#0A2540"),
-            hoverinfo="text",
-            hovertext=df.apply(
-                lambda r: f"<b>{r['Cidade']}</b><br>Visitas: {int(r['Visitas']):,}".replace(",", "."), axis=1
-            ),
-            name="Cidades",
-        )
-    )
-    fig.add_trace(
-        go.Scattermapbox(
-            lat=df["lat"],
-            lon=df["lon"],
-            mode="text",
-            text=df["cidade_label"],
+            lat=df_labeled["lat"], lon=df_labeled["lon"],
+            mode="markers+text",
+            marker=dict(size=14, color="#0A2540"),
+            text=df_labeled["label_full"],
             textposition="top center",
-            textfont=dict(size=11, color="#0A2540", family="Arial Black"),
-            hoverinfo="skip",
-            showlegend=False,
-        )
-    )
-    fig.add_trace(
-        go.Scattermapbox(
-            lat=df["lat"],
-            lon=df["lon"],
-            mode="text",
-            text=df["valor_label"],
-            textposition="bottom center",
-            textfont=dict(size=13, color="#08111F", family="Arial Black"),
-            hoverinfo="skip",
-            showlegend=False,
+            textfont=dict(size=13, color="#0A2540", family="Arial Black"),
+            hoverinfo="text",
+            hovertext=df_labeled.apply(
+                lambda r: f"<b>{r['Cidade']}</b><br>Visitas: {r['valor_fmt']}", axis=1
+            ),
+            name="Top 10",
         )
     )
 
@@ -183,13 +187,19 @@ def _render_pin_map(df_top: pd.DataFrame, ms_geojson):
         mapbox=dict(
             style="carto-positron",
             center=dict(lat=-20.5, lon=-54.6),
-            zoom=5.25,
+            zoom=5.55,
         ),
-        margin=dict(l=0, r=0, t=32, b=0),
+        margin=dict(l=0, r=0, t=0, b=0),
         showlegend=False,
-        height=560,
+        height=height,
         paper_bgcolor="#FFFFFF",
-        title=dict(text="<b>VOLUME DE ACESSOS</b>", x=0.5, xanchor="center", font=dict(color="#0F3057", size=14)),
+    )
+
+    st.markdown(
+        "<div style='background:#0F3057; color:#fff; text-align:center; padding:10px; "
+        "border-radius:10px 10px 0 0; font-weight:800; letter-spacing:0.8px; font-size:14px;'>"
+        "VOLUME DE ACESSOS</div>",
+        unsafe_allow_html=True,
     )
     st.plotly_chart(fig, width="stretch")
 
@@ -212,13 +222,13 @@ def render_tab1_perfil(df_cities, df_browsers, df_device_types, df_time, ms_geoj
         if 'Visitas' in df_cities_view.columns:
             df_cities_view['Média Mensal'] = (df_cities_view['Visitas'] / n_meses).round(1)
 
-        df_top20 = df_cities_view.head(20).reset_index(drop=True)
+        df_top15 = df_cities_view.head(15).reset_index(drop=True)
 
-        col_card, col_map = st.columns([0.42, 0.58], gap="small")
+        col_card, col_map = st.columns([0.38, 0.62], gap="medium")
         with col_card:
-            _render_ranking_card(df_top20, badge)
+            _render_ranking_card(df_top15, badge)
         with col_map:
-            _render_pin_map(df_top20, ms_geojson)
+            _render_pin_map(df_top15, ms_geojson, height=720)
 
         st.caption(
             f"📅 Período: **{start_date or '—'} → {end_date or '—'}** "

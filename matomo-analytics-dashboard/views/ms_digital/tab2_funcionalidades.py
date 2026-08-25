@@ -1,10 +1,26 @@
+from datetime import date as dt_date
+
 import streamlit as st
 import plotly.express as px
 from utils.charts_formatter import create_top_bar_chart
 
-def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_links=None):
+
+def _months_in_range(start_date, end_date):
+    if not start_date or not end_date:
+        return 1.0
+    try:
+        s = dt_date.fromisoformat(start_date)
+        e = dt_date.fromisoformat(end_date)
+    except (TypeError, ValueError):
+        return 1.0
+    return max(((e - s).days + 1) / 30.44, 1.0)
+
+
+def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_links=None, start_date=None, end_date=None):
     st.header("Serviços Mais Acessados — MS Digital App")
     st.markdown("Quais funcionalidades os cidadãos mais utilizam. Baseado em acessos de tela (`screen_view`).")
+
+    n_meses = _months_in_range(start_date, end_date)
 
     # ── KPIs ─────────────────────────────────────────────────────────────────
     if not df_services.empty:
@@ -15,8 +31,11 @@ def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_l
 
         col1, col2, col3 = st.columns(3)
         col1.metric("📊 Total de Acessos a Serviços", f"{total_acessos:,}".replace(",", "."))
+        col1.caption(f"Média mensal: **{int(total_acessos / n_meses):,}".replace(",", ".") + "**")
         col2.metric("🏆 Serviço #1", servico_top, f"{acessos_top:,} acessos".replace(",", "."))
+        col2.caption(f"Média mensal do #1: **{int(acessos_top / n_meses):,}".replace(",", ".") + "**")
         col3.metric("📈 Concentração Top 3", f"{pct_top3}%", "dos acessos totais")
+        col3.caption(f"Período: {start_date} → {end_date} (~{n_meses:.1f} meses)")
 
     st.markdown("---")
 
@@ -28,9 +47,34 @@ def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_l
 
         with col_chart:
             df_top = df_services.head(15).copy()
+            df_top["Média Mensal"] = (df_top["Acessos"] / n_meses).round(0).astype(int)
             fig = create_top_bar_chart(df_top, "Acessos", "Serviço", "Blues")
-            fig.update_layout(coloraxis_showscale=False, margin=dict(t=10, b=10, r=80))
-            fig.update_yaxes(tickfont=dict(size=11))
+
+            n = len(df_top)
+            text_labels = [f"<b>{int(v):,}</b>".replace(",", ".") for v in df_top["Acessos"]]
+            text_colors = ["#FFFFFF"] + ["#000000"] * (n - 1)
+            text_sizes = [13] + [12] * (n - 1)
+
+            fig.update_layout(
+                coloraxis_showscale=False,
+                margin=dict(t=10, b=10, r=80),
+                font=dict(color="#000000"),
+            )
+            fig.update_xaxes(
+                tickfont=dict(color="#000000", size=11),
+                title_font=dict(color="#000000"),
+            )
+            fig.update_yaxes(
+                tickfont=dict(color="#000000", size=11),
+                title_font=dict(color="#000000"),
+            )
+            fig.update_traces(
+                text=text_labels,
+                texttemplate="%{text}",
+                textfont=dict(color=text_colors, size=text_sizes, family="Arial Black"),
+                customdata=df_top[["Média Mensal"]].values,
+                hovertemplate="<b>%{y}</b><br>Acessos: %{x:,.0f}<br>Média mensal: %{customdata[0]:,.0f}<extra></extra>",
+            )
             st.plotly_chart(fig, width="stretch")
 
         with col_table:
@@ -38,8 +82,13 @@ def render_ga_tab2_funcionalidades(df_services, df_services_trend, df_external_l
             df_show = df_services.copy()
             df_show.insert(0, "#", df_show.index + 1)
             df_show["% do Total"] = df_show["%"].apply(lambda v: f"{v}%")
+            df_show["Média Mensal"] = (df_show["Acessos"] / n_meses).round(0).astype(int)
             st.dataframe(
-                df_show[["#", "Serviço", "Acessos", "% do Total"]],
+                df_show[["#", "Serviço", "Acessos", "Média Mensal", "% do Total"]],
+                column_config={
+                    "Acessos": st.column_config.NumberColumn("Acessos", format="%d"),
+                    "Média Mensal": st.column_config.NumberColumn("Média/mês", format="%d"),
+                },
                 hide_index=True,
                 width="stretch",
                 height=500,

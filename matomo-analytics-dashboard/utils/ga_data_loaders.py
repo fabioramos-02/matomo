@@ -1,3 +1,5 @@
+from datetime import date as _dt_date, timedelta as _timedelta
+
 import streamlit as st
 from utils.ga_data_processor import (
     process_ga_screens,
@@ -92,3 +94,33 @@ def load_ga_external_links(_ga_api, start_date, end_date, property_id):
 def load_ga_country_map(_ga_api, start_date, end_date, property_id):
     data = _ga_api.get_country_map(start_date, end_date)
     return process_ga_country_map(data)
+
+
+def _sum_first_open(funnel_df) -> tuple[int, int]:
+    if funnel_df is None or funnel_df.empty:
+        return 0, 0
+    row = funnel_df[funnel_df["Evento"] == "first_open"]
+    if row.empty:
+        return 0, 0
+    users = int(row.iloc[0].get("Usuários", 0) or 0)
+    events = int(row.iloc[0].get("Ocorrências", 0) or 0)
+    return users, events
+
+
+@st.cache_data(ttl=21600)
+def load_ga_downloads_lifetime(_ga_api, property_id, lifetime_start: str = "2020-01-01"):
+    today = _dt_date.today().isoformat()
+    data = _ga_api.get_funnel_events(lifetime_start, today)
+    df = process_ga_funnel(data)
+    users, events = _sum_first_open(df)
+    return {"start": lifetime_start, "end": today, "users": users, "events": events}
+
+
+@st.cache_data(ttl=21600)
+def load_ga_downloads_last12m(_ga_api, property_id):
+    end = _dt_date.today()
+    start = end - _timedelta(days=365)
+    data = _ga_api.get_funnel_events(start.isoformat(), end.isoformat())
+    df = process_ga_funnel(data)
+    users, events = _sum_first_open(df)
+    return {"start": start.isoformat(), "end": end.isoformat(), "users": users, "events": events}

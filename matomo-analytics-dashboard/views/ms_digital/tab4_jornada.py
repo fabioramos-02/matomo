@@ -1,8 +1,20 @@
+from datetime import date as dt_date
+
 import pandas as pd
-import streamlit as st
 import streamlit as st
 import plotly.express as px
 from utils.charts_formatter import create_top_bar_chart
+
+
+def _months_in_range(start_date, end_date):
+    if not start_date or not end_date:
+        return 1.0
+    try:
+        s = dt_date.fromisoformat(start_date)
+        e = dt_date.fromisoformat(end_date)
+    except (TypeError, ValueError):
+        return 1.0
+    return max(((e - s).days + 1) / 30.44, 1.0)
 
 _EVENTOS_SISTEMA = {
     "first_open":      ("Novos Usuários",      "Abriram o app pela 1ª vez no período"),
@@ -20,12 +32,14 @@ def _fmt(n: int) -> str:
     return str(n)
 
 
-def render_ga_tab4_jornada(df_funnel):
+def render_ga_tab4_jornada(df_funnel, start_date=None, end_date=None):
     st.header("Jornada do Usuário — MS Digital App")
 
     if df_funnel is None or df_funnel.empty:
         st.warning("Sem dados de eventos para o período selecionado.")
         return
+
+    n_meses = _months_in_range(start_date, end_date)
 
     sistema_mask = df_funnel["Evento"].isin(_EVENTOS_SISTEMA.keys())
     df_sistema = df_funnel[sistema_mask].copy()
@@ -42,9 +56,11 @@ def render_ga_tab4_jornada(df_funnel):
     for i, (evt, info) in enumerate(kpi_map.items()):
         val = int(row.loc[evt, "Usuários"]) if evt in row.index and "Usuários" in row.columns else 0
         evt_count = int(row.loc[evt, "Ocorrências"]) if evt in row.index else 0
+        raw = val if val > 0 else evt_count
         with cols[i]:
-            st.metric(label=info["label"], value=_fmt(val if val > 0 else evt_count))
-            st.caption(info["desc"])
+            st.metric(label=info["label"], value=_fmt(raw))
+            media = raw / n_meses if n_meses else raw
+            st.caption(f"Média mensal: **{_fmt(int(media))}** · {info['desc']}")
 
     st.markdown("---")
 

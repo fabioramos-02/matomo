@@ -1,15 +1,15 @@
 ﻿Evento;Ocorrências;Usuários
-first_open;6947;6869
-session_start;109172;41369
-screen_view;190138;24961
-user_engagement;254581;35304
-erro_interno;330467;35842
-use_feature;108874;20634
-click;21830;8837
-os_update;9824;8548
-app_update;8515;8295
-app_remove;2654;2614
-app_exception;273;263
-app_clear_data;47;36
-;0;353
-(not set);0;4359
+first_open;6856;6762
+session_start;108324;41270
+screen_view;187711;24804
+user_engagement;251625;35210
+erro_interno;327353;35658
+use_feature;107891;20535
+click;21513;8693
+os_update;9927;8625
+app_update;8377;8237
+app_remove;2658;2619
+app_exception;263;253
+app_clear_data;48;36
+;0;259
+(not set);0;4418
